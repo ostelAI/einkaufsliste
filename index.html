@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.4.6";
+const VER="3.4.7";
 
 const DEFAULTS={
   s:[
@@ -507,8 +507,13 @@ OneSignalDeferred.push(async function(OneSignal){
 // muss die allererste awaited Aktion sein, sonst zählt iOS den Fingertipp nicht
 // mehr als "echte" Nutzerinteraktion.
 async function enableNotifications(){
+  if(!window.OneSignal){
+    openDlg('Einen Moment…', 'Die Benachrichtigungs-Funktion lädt noch im Hintergrund. Bitte in ein paar Sekunden nochmal auf "Aktivieren" tippen.',
+      `<button class="btn-c" style="width:100%" onclick="closeDlg()">OK</button>`);
+    return;
+  }
   try{
-    await window.OneSignal?.Notifications.requestPermission();
+    await window.OneSignal.Notifications.requestPermission();
     if(Notification.permission === 'granted'){
       notifOk = true;
       mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null;
@@ -674,7 +679,9 @@ async function startApp(){
   lsSave();
   setSyncLbl();
   startSync();
-  updateNotifBanner();
+  // Banner erscheint erst, sobald OneSignal wirklich bereit ist (siehe
+  // OneSignalDeferred-Callback oben) — sonst würde ein Klick auf "Aktivieren"
+  // ins Leere laufen, solange das SDK noch lädt.
 
   if(remote&&remote.cat){
     await checkAndNotifyNewVersion();
@@ -772,6 +779,10 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.4.7": [
+    "Fehler behoben: „Aktivieren\"-Button für Benachrichtigungen reagierte nicht, wenn er zu früh angetippt wurde (SDK noch nicht bereit)",
+    "Button erscheint jetzt erst, sobald Benachrichtigungen wirklich aktivierbar sind",
+  ],
   "3.4.6": [
     "Fehler behoben: Erlauben-Dialog für Push-Benachrichtigungen erschien auf dem iPhone nie",
     "Neuer Button „Aktivieren\" im Kopfbereich, falls Benachrichtigungen noch nicht eingerichtet sind",
