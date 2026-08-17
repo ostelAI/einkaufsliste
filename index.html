@@ -187,6 +187,10 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe
       <button class="tab on" data-tab="planen" onclick="switchTab('planen')">📋 Planen<span id="b-plan" class="bdg" style="display:none"></span></button>
       <button class="tab" data-tab="einkaufen" onclick="switchTab('einkaufen')">🛒 Einkaufen<span id="b-shop" class="bdg" style="display:none"></span></button>
     </div>
+    <div id="notif-banner" style="display:none;align-items:center;gap:8px;padding:8px 4px;font-size:12.5px;color:var(--sub)">
+      <span class="nb-text" style="flex:1"></span>
+      <button class="nb-btn" onclick="enableNotifications()" style="padding:6px 12px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">Aktivieren</button>
+    </div>
   </div>
 
 <!-- Avatar-Dialog -->
@@ -251,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.4.5";
+const VER="3.4.6";
 
 const DEFAULTS={
   s:[
@@ -474,27 +478,86 @@ const ONESIGNAL_APP_ID = "099b5ea0-4f66-472c-8de5-e708803c43be";
 
 let mySubscriptionId = null;
 
-async function initNotif(){
-  if(!window.OneSignal){
-    setTimeout(initNotif, 1000);
-    return;
-  }
+// OneSignalDeferred ist das offizielle Muster, um auf das (per defer geladene)
+// SDK-Script zu warten, ohne selbst mit setTimeout zu pollen. WICHTIG: init()
+// fragt absichtlich NICHT automatisch nach der Erlaubnis — auf iOS (als zum
+// Home-Bildschirm hinzugefügte App) muss der Erlauben-Dialog direkt und ohne
+// jeden await-Umweg aus einem echten Fingertipp ausgelöst werden, sonst
+// verwirft iOS die Anfrage stillschweigend (kein Popup, kein Fehler).
+// Daher übernimmt das ein eigener Button (siehe enableNotifications()).
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal){
   try{
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true
     });
-    await OneSignal.Notifications.requestPermission();
-    notifOk = true;
-    // Eigene Subscription-ID speichern zum späteren Ausschluss
-    mySubscriptionId = OneSignal.User?.PushSubscription?.id || null;
-    // Falls noch nicht verfügbar, kurz warten
-    if(!mySubscriptionId){
-      setTimeout(()=>{
-        mySubscriptionId = OneSignal.User?.PushSubscription?.id || null;
-      }, 2000);
+    if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+      notifOk = true;
+      mySubscriptionId = OneSignal.User?.PushSubscription?.id || null;
+      if(!mySubscriptionId){
+        setTimeout(()=>{ mySubscriptionId = OneSignal.User?.PushSubscription?.id || null; }, 2000);
+      }
     }
   }catch(e){ console.warn("OneSignal init failed", e); }
+  updateNotifBanner();
+});
+
+// Wird DIREKT per onclick vom Aktivieren-Button aufgerufen — requestPermission()
+// muss die allererste awaited Aktion sein, sonst zählt iOS den Fingertipp nicht
+// mehr als "echte" Nutzerinteraktion.
+async function enableNotifications(){
+  try{
+    await window.OneSignal?.Notifications.requestPermission();
+    if(Notification.permission === 'granted'){
+      notifOk = true;
+      mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null;
+      if(!mySubscriptionId){
+        setTimeout(()=>{ mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null; }, 2000);
+      }
+    }
+  }catch(e){ console.warn("requestPermission failed", e); }
+  updateNotifBanner();
+}
+
+function isIosNonStandalone(){
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  return isIos && !isStandalone;
+}
+
+function updateNotifBanner(){
+  const el = document.getElementById('notif-banner');
+  if(!el) return;
+  const text = el.querySelector('.nb-text');
+  const btn = el.querySelector('.nb-btn');
+
+  if(typeof Notification === 'undefined'){
+    // Kein Notification-API verfügbar — auf iOS typischerweise, weil noch
+    // nicht zum Home-Bildschirm hinzugefügt (im normalen Safari-Tab geht
+    // Web-Push auf iOS grundsätzlich nicht).
+    if(isIosNonStandalone()){
+      el.style.display = 'flex';
+      text.textContent = '📲 Zum Home-Bildschirm hinzufügen, um Benachrichtigungen zu erhalten';
+      btn.style.display = 'none';
+    } else {
+      el.style.display = 'none';
+    }
+    return;
+  }
+  if(Notification.permission === 'granted'){
+    el.style.display = 'none';
+  } else if(Notification.permission === 'denied'){
+    el.style.display = 'flex';
+    text.textContent = '🔕 Benachrichtigungen blockiert — in den iPhone-Einstellungen für diese App aktivieren';
+    btn.style.display = 'none';
+  } else {
+    el.style.display = 'flex';
+    text.textContent = '🔔 Push-Benachrichtigungen von der Familie bekommen?';
+    btn.style.display = 'inline-block';
+  }
 }
 
 // Ersetzt die frühere Netlify-Function (GitHub Pages kann keine Server-Funktionen
@@ -611,7 +674,7 @@ async function startApp(){
   lsSave();
   setSyncLbl();
   startSync();
-  await initNotif();
+  updateNotifBanner();
 
   if(remote&&remote.cat){
     await checkAndNotifyNewVersion();
@@ -709,6 +772,11 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.4.6": [
+    "Fehler behoben: Erlauben-Dialog für Push-Benachrichtigungen erschien auf dem iPhone nie",
+    "Neuer Button „Aktivieren\" im Kopfbereich, falls Benachrichtigungen noch nicht eingerichtet sind",
+    "Hinweis, falls die App noch nicht zum Home-Bildschirm hinzugefügt wurde (auf iPhone Voraussetzung für Benachrichtigungen)",
+  ],
   "3.4.5": [
     "Fehler behoben: Bild/Symbol eines Artikels wurde bei „Einkaufen\" nicht angezeigt, wenn der Artikel aus dem Katalog ausgewählt wurde",
     "Eigene Kategorien sind jetzt zwischen allen Familienmitgliedern synchronisiert, statt nur auf einem Gerät sichtbar zu sein",
