@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.4.8";
+const VER="3.4.9";
 
 const DEFAULTS={
   s:[
@@ -503,9 +503,16 @@ OneSignalDeferred.push(async function(OneSignal){
   updateNotifBanner();
 });
 
-// Wird DIREKT per onclick vom Aktivieren-Button aufgerufen — requestPermission()
-// muss die allererste awaited Aktion sein, sonst zählt iOS den Fingertipp nicht
-// mehr als "echte" Nutzerinteraktion.
+// Wird DIREKT per onclick vom Aktivieren-Button aufgerufen — der erste awaited
+// Aufruf muss unmittelbar aus dem Fingertipp kommen, sonst zählt iOS die
+// Nutzerinteraktion nicht mehr als "echt" und zeigt keinen Dialog.
+//
+// WICHTIG: Notifications.requestPermission() holt nur die Browser-Erlaubnis
+// ein — das allein erzeugt noch KEIN tatsächliches Abo bei OneSignal (der
+// Server registriert dadurch nichts, "Notification.permission" steht zwar auf
+// "granted", aber es abonniert sich niemand wirklich). Erst
+// User.PushSubscription.optIn() schließt das Abo ab (und zeigt intern selbst
+// den Erlauben-Dialog an, falls noch nötig) — deshalb reicht optIn() allein.
 async function enableNotifications(){
   if(!window.OneSignal){
     openDlg('Einen Moment…', 'Die Benachrichtigungs-Funktion lädt noch im Hintergrund. Bitte in ein paar Sekunden nochmal auf "Aktivieren" tippen.',
@@ -513,7 +520,7 @@ async function enableNotifications(){
     return;
   }
   try{
-    await window.OneSignal.Notifications.requestPermission();
+    await window.OneSignal.User.PushSubscription.optIn();
     if(Notification.permission === 'granted'){
       notifOk = true;
       mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null;
@@ -521,7 +528,7 @@ async function enableNotifications(){
         setTimeout(()=>{ mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null; }, 2000);
       }
     }
-  }catch(e){ console.warn("requestPermission failed", e); }
+  }catch(e){ console.warn("optIn failed", e); }
   updateNotifBanner();
 }
 
@@ -779,6 +786,9 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.4.9": [
+    "Echter Fehler gefunden und behoben: Aktivieren-Button holte nur die Browser-Erlaubnis ein, hat aber nie das eigentliche Abo bei OneSignal abgeschlossen",
+  ],
   "3.4.8": [
     "Push-Benachrichtigungen: komplett frische OneSignal-App eingerichtet (alte hing nach dem Domain-Umzug fest)",
   ],
