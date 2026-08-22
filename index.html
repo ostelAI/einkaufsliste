@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.4.9";
+const VER="3.5.0";
 
 const DEFAULTS={
   s:[
@@ -490,6 +490,16 @@ OneSignalDeferred.push(async function(OneSignal){
   try{
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
+      // ENTSCHEIDEND: OneSignal sucht seine Service-Worker-Datei standardmäßig
+      // im Wurzelverzeichnis der Domain (Default: scope "/" + "OneSignalSDKWorker.js").
+      // Auf Netlify lag die App genau dort — deshalb lief es dort auf Anhieb.
+      // Auf GitHub Pages liegt sie im Unterordner /einkaufsliste/, die Datei unter
+      // https://ostelai.github.io/OneSignalSDKWorker.js existiert also NICHT (404).
+      // Ohne registrierten Service Worker kann kein Push-Abo entstehen — die
+      // Browser-Erlaubnis wird trotzdem erteilt, weshalb es fälschlich nach Erfolg
+      // aussieht, server-seitig aber nie ein Gerät ankommt.
+      serviceWorkerPath: "einkaufsliste/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/einkaufsliste/" },
       allowLocalhostAsSecureOrigin: true
     });
     if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
@@ -507,12 +517,11 @@ OneSignalDeferred.push(async function(OneSignal){
 // Aufruf muss unmittelbar aus dem Fingertipp kommen, sonst zählt iOS die
 // Nutzerinteraktion nicht mehr als "echt" und zeigt keinen Dialog.
 //
-// WICHTIG: Notifications.requestPermission() holt nur die Browser-Erlaubnis
-// ein — das allein erzeugt noch KEIN tatsächliches Abo bei OneSignal (der
-// Server registriert dadurch nichts, "Notification.permission" steht zwar auf
-// "granted", aber es abonniert sich niemand wirklich). Erst
-// User.PushSubscription.optIn() schließt das Abo ab (und zeigt intern selbst
-// den Erlauben-Dialog an, falls noch nötig) — deshalb reicht optIn() allein.
+// Zwei Schritte, beide nötig: requestPermission() holt die Browser-Erlaubnis
+// (zeigt den iOS-Dialog, muss direkt aus dem Tap kommen), optIn() schließt
+// danach das eigentliche Abo bei OneSignal ab. Beides zusammen deckt sicher
+// beide Fälle ab — auch wenn die Erlaubnis von einem früheren Versuch schon
+// erteilt war, das Abo aber (wegen des Service-Worker-Fehlers) nie zustande kam.
 async function enableNotifications(){
   if(!window.OneSignal){
     openDlg('Einen Moment…', 'Die Benachrichtigungs-Funktion lädt noch im Hintergrund. Bitte in ein paar Sekunden nochmal auf "Aktivieren" tippen.',
@@ -520,15 +529,16 @@ async function enableNotifications(){
     return;
   }
   try{
-    await window.OneSignal.User.PushSubscription.optIn();
+    await window.OneSignal.Notifications.requestPermission();
     if(Notification.permission === 'granted'){
+      await window.OneSignal.User.PushSubscription.optIn();
       notifOk = true;
       mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null;
       if(!mySubscriptionId){
         setTimeout(()=>{ mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null; }, 2000);
       }
     }
-  }catch(e){ console.warn("optIn failed", e); }
+  }catch(e){ console.warn("enableNotifications failed", e); }
   updateNotifBanner();
 }
 
@@ -786,6 +796,9 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.5.0": [
+    "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
+  ],
   "3.4.9": [
     "Echter Fehler gefunden und behoben: Aktivieren-Button holte nur die Browser-Erlaubnis ein, hat aber nie das eigentliche Abo bei OneSignal abgeschlossen",
   ],
