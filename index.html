@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.5.0";
+const VER="3.5.1";
 
 const DEFAULTS={
   s:[
@@ -504,6 +504,16 @@ OneSignalDeferred.push(async function(OneSignal){
     });
     if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
       notifOk = true;
+      // Selbstheilung: Wer während der kaputten Version schon "Erlauben" getippt
+      // hat, hat zwar die Erlaubnis, aber kein Abo (das scheiterte am Service
+      // Worker). Der Aktivieren-Button erscheint dann nicht mehr, das Abo würde
+      // also nie nachgeholt. Deshalb hier automatisch nachziehen — ohne Dialog,
+      // da die Erlaubnis bereits vorliegt.
+      try{
+        if(OneSignal.User?.PushSubscription?.optedIn !== true){
+          await OneSignal.User.PushSubscription.optIn();
+        }
+      }catch(e){ console.warn("Automatisches Nachholen des Abos fehlgeschlagen", e); }
       mySubscriptionId = OneSignal.User?.PushSubscription?.id || null;
       if(!mySubscriptionId){
         setTimeout(()=>{ mySubscriptionId = OneSignal.User?.PushSubscription?.id || null; }, 2000);
@@ -796,6 +806,10 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.5.1": [
+    "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
+    "Wer die Erlaubnis vorher schon erteilt hatte, wird beim nächsten Öffnen automatisch angemeldet — kein erneutes Einrichten nötig",
+  ],
   "3.5.0": [
     "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
   ],
