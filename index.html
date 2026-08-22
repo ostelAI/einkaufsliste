@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.5.1";
+const VER="3.5.2";
 
 const DEFAULTS={
   s:[
@@ -491,14 +491,26 @@ OneSignalDeferred.push(async function(OneSignal){
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       // ENTSCHEIDEND: OneSignal sucht seine Service-Worker-Datei standardmäßig
-      // im Wurzelverzeichnis der Domain (Default: scope "/" + "OneSignalSDKWorker.js").
-      // Auf Netlify lag die App genau dort — deshalb lief es dort auf Anhieb.
-      // Auf GitHub Pages liegt sie im Unterordner /einkaufsliste/, die Datei unter
-      // https://ostelai.github.io/OneSignalSDKWorker.js existiert also NICHT (404).
-      // Ohne registrierten Service Worker kann kein Push-Abo entstehen — die
-      // Browser-Erlaubnis wird trotzdem erteilt, weshalb es fälschlich nach Erfolg
-      // aussieht, server-seitig aber nie ein Gerät ankommt.
-      serviceWorkerPath: "einkaufsliste/OneSignalSDKWorker.js",
+      // im Wurzelverzeichnis der Domain (Server-Config: path "/", scope "/",
+      // "OneSignalSDKWorker.js"). Auf Netlify lag die App genau dort — deshalb
+      // lief es dort auf Anhieb. Auf GitHub Pages liegt sie im Unterordner
+      // /einkaufsliste/, https://ostelai.github.io/OneSignalSDKWorker.js gibt
+      // also 404. Ohne registrierten Service Worker kann kein Push-Abo
+      // entstehen — die Browser-Erlaubnis wird trotzdem erteilt, weshalb es
+      // fälschlich nach Erfolg aussieht, server-seitig aber nie ein Gerät ankommt.
+      //
+      // Alle drei Angaben sind nötig, je einzeln wirkungslos (im SDK-Bundle
+      // nachgeprüft):
+      //  - serviceWorkerOverrideForTypical: ohne dieses Flag verwirft das SDK bei
+      //    der Integrationsart "typical" sämtliche eigenen Pfadangaben und nimmt
+      //    stattdessen die Server-Werte (also wieder das Wurzelverzeichnis).
+      //  - path: der Dateipfad wird als `path + "/" + serviceWorkerPath` gebaut,
+      //    und nur überhaupt gesetzt, wenn `path` vorhanden ist.
+      //  - serviceWorkerParam.scope: Geltungsbereich; darf nicht breiter sein als
+      //    der Ordner, aus dem die Datei ausgeliefert wird.
+      serviceWorkerOverrideForTypical: true,
+      path: "/einkaufsliste/",
+      serviceWorkerPath: "OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/einkaufsliste/" },
       allowLocalhostAsSecureOrigin: true
     });
@@ -806,9 +818,12 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
-  "3.5.1": [
+  "3.5.2": [
     "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
     "Wer die Erlaubnis vorher schon erteilt hatte, wird beim nächsten Öffnen automatisch angemeldet — kein erneutes Einrichten nötig",
+  ],
+  "3.5.1": [
+    "Zwischenschritt bei der Fehlersuche zu den Push-Benachrichtigungen",
   ],
   "3.5.0": [
     "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
