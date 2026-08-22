@@ -56,25 +56,41 @@ export default {
       return json({ error: "title und body sind erforderlich" }, 400);
     }
 
-    const notifBody = {
-      app_id: env.ONESIGNAL_APP_ID,
-      included_segments: ["Subscribed Users"],
-      headings: { en: String(title) },
-      contents: { en: String(body) },
-    };
-    if (excludeSubId) {
-      notifBody.excluded_player_ids = [excludeSubId];
+    // "Total Subscriptions" ist der Name der Alle-Geräte-Gruppe in aktuellen
+    // OneSignal-Apps. Ältere Apps hießen an dieser Stelle "Subscribed Users" —
+    // deshalb unten ein Fallback, falls die Gruppe mal nicht existiert
+    // (sonst kommt die Nachricht kommentarlos bei niemandem an).
+    const SEGMENTS = ["Total Subscriptions", "Subscribed Users"];
+
+    function buildBody(segment, withExclude) {
+      const b = {
+        app_id: env.ONESIGNAL_APP_ID,
+        included_segments: [segment],
+        headings: { en: String(title) },
+        contents: { en: String(body) },
+      };
+      if (withExclude && excludeSubId) b.excluded_player_ids = [excludeSubId];
+      return b;
     }
 
-    let res = await sendToOneSignal(env, notifBody);
-    let data = await res.json();
+    function failed(res, data) {
+      return !res.ok || (Array.isArray(data.errors) && data.errors.length > 0);
+    }
 
-    // Falls die Ausschluss-ID vom aktuellen OneSignal-Modell nicht akzeptiert wird,
-    // lieber an alle senden (inkl. Absender) als die Benachrichtigung ganz zu verlieren.
-    if (!res.ok && excludeSubId) {
-      delete notifBody.excluded_player_ids;
-      res = await sendToOneSignal(env, notifBody);
+    let res, data;
+    for (const segment of SEGMENTS) {
+      // Erst mit Ausschluss des Absenders …
+      res = await sendToOneSignal(env, buildBody(segment, true));
       data = await res.json();
+
+      // … falls die Ausschluss-ID nicht akzeptiert wird, lieber an alle senden
+      // (inkl. Absender) als die Benachrichtigung ganz zu verlieren.
+      if (failed(res, data) && excludeSubId) {
+        res = await sendToOneSignal(env, buildBody(segment, false));
+        data = await res.json();
+      }
+
+      if (!failed(res, data)) break;
     }
 
     return json(data, res.status);
