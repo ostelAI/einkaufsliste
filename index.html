@@ -255,7 +255,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.4.7";
+const VER="3.4.8";
 
 const DEFAULTS={
   s:[
@@ -474,7 +474,7 @@ function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify({state:S,me:ME}
 // ── Push Notif via OneSignal ────────────────────────────────────────────────
 // Der REST-Key darf NICHT hier im Client stehen (öffentlich einsehbar) —
 // er lebt ausschließlich serverseitig im Cloudflare Worker als Secret.
-const ONESIGNAL_APP_ID = "099b5ea0-4f66-472c-8de5-e708803c43be";
+const ONESIGNAL_APP_ID = "60cf7820-57f1-44ca-a0d3-4891af894de6";
 
 let mySubscriptionId = null;
 
@@ -779,6 +779,9 @@ function togglePlanGroup(key){
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
 const CHANGELOG = {
+  "3.4.8": [
+    "Push-Benachrichtigungen: komplett frische OneSignal-App eingerichtet (alte hing nach dem Domain-Umzug fest)",
+  ],
   "3.4.7": [
     "Fehler behoben: „Aktivieren\"-Button für Benachrichtigungen reagierte nicht, wenn er zu früh angetippt wurde (SDK noch nicht bereit)",
     "Button erscheint jetzt erst, sobald Benachrichtigungen wirklich aktivierbar sind",
