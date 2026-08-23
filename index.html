@@ -13,110 +13,215 @@
   <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --bg:#0f1117;--surf:#1a1d27;--surf2:#22263a;
-  --brd:#2a2e42;--brd2:#353a52;
-  --txt:#e8eaf6;--sub:#7b82a8;--muted:#4a5080;
-  --green:#3ddc84;--gdim:#1a3d2e;--gbrd:#2a6048;
-  --orange:#ff8c5a;--odim:#3d2010;--obrd:#6a3820;
-  --blue:#6c8eff;--bdim:#1a2550;--bbrd:#2a3d80;
-  --purple:#a78bfa;--red:#ff5a5a;--yellow:#ffd166;
+  /* Tiefes Marineblau statt Schwarz, Karten etwas heller abgesetzt */
+  --bg:#0f1630;--surf:#1a2244;--surf2:#232c52;
+  --brd:rgba(255,255,255,.08);--brd2:rgba(255,255,255,.15);
+  --txt:#ffffff;--sub:#9aa3c4;--muted:#6b75a0;
+  /* Akzent: leuchtendes Magenta/Violett */
+  --acc:#e930d8;--acc2:#a855f7;--acc-glow:rgba(233,48,216,.45);
+  --acc-soft:rgba(233,48,216,.16);
+  --dark:#161d3b;                  /* Blase des Umschalters */
+  /* Farbverläufe der Karten — direkt aus der Vorlage */
+  --grad-violet:linear-gradient(135deg,#7c4dff,#b14af5);
+  --grad-cyan:linear-gradient(135deg,#22d3ee,#3b82f6);
+  --grad-pink:linear-gradient(135deg,#ff3d9a,#f0468c);
+  --green:#22d3ee;--gdim:rgba(34,211,238,.14);--gbrd:rgba(34,211,238,.4);
+  --orange:var(--acc);--odim:var(--acc-soft);--obrd:rgba(233,48,216,.4);
+  --blue:var(--acc);--bdim:var(--acc-soft);--bbrd:rgba(233,48,216,.45);
+  --purple:var(--acc2);--red:#ff4d6d;--yellow:#ff9f45;
+  --sh:0 2px 10px rgba(0,0,0,.28);
+  --sh-lg:0 16px 44px rgba(0,0,0,.45);
 }
-html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe UI',sans-serif;min-height:100vh;}
+html,body{background:var(--bg);color:var(--txt);min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;letter-spacing:-0.01em;}
+/* Feines Punktraster wie in der Vorlage — gibt dem Blau Textur */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:22px 22px;}
 /* Setup */
-#setup{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
-.setup-card{background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:32px;max-width:380px;width:100%;text-align:center;}
-.setup-card h2{font-size:21px;margin-bottom:8px;}
-.setup-card p{color:var(--sub);font-size:14px;margin-bottom:24px;line-height:1.5;}
-/* Avatar picker */
-.avatar-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:20px;}
-.av-opt{width:56px;height:56px;border-radius:50%;border:2px solid var(--brd2);background:var(--surf2);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
-.av-opt.selected{border-color:var(--blue);box-shadow:0 0 0 3px #6c8eff44;}
+#setup{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;position:relative;z-index:1;}
+.setup-card{background:var(--surf);border:1px solid var(--brd);border-radius:28px;padding:36px 30px;max-width:390px;width:100%;text-align:center;box-shadow:var(--sh-lg);}
+.setup-card h2{font-size:23px;margin-bottom:8px;font-weight:800;letter-spacing:-0.03em;}
+.setup-card p{color:var(--sub);font-size:14.5px;margin-bottom:26px;line-height:1.55;}
+/* Avatar */
+.avatar-grid{display:flex;flex-wrap:wrap;gap:11px;justify-content:center;margin-bottom:22px;}
+.av-opt{width:58px;height:58px;border-radius:50%;border:2px solid var(--brd2);background:var(--surf2);cursor:pointer;font-size:27px;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
+.av-opt.selected{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-glow);transform:scale(1.06);}
 .av-opt img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
-.av-upload{font-size:20px;color:var(--sub);}
-#name-inp{width:100%;padding:12px 16px;border-radius:12px;border:1.5px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:16px;margin-bottom:14px;outline:none;text-align:center;}
-.start-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-weight:700;font-size:16px;cursor:pointer;}
+.av-upload{font-size:22px;color:var(--sub);}
+#name-inp{width:100%;padding:15px 18px;border-radius:999px;border:1.5px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:16px;margin-bottom:14px;outline:none;text-align:center;font-family:inherit;transition:.18s;}
+#name-inp:focus{border-color:var(--acc);}
+.start-btn{width:100%;padding:16px;border-radius:999px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:800;font-size:16.5px;cursor:pointer;font-family:inherit;box-shadow:0 6px 22px var(--acc-glow);transition:transform .12s;}
+.start-btn:active{transform:scale(.97);}
 /* App */
-#app{display:none;max-width:480px;margin:0 auto;}
-#hdr{background:var(--surf);border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:50;padding:12px 16px 0;}
-.title-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-.user-av{width:28px;height:28px;border-radius:50%;background:var(--surf2);border:1.5px solid var(--brd2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;}
+#app{display:none;max-width:480px;margin:0 auto;position:relative;z-index:1;}
+#hdr{background:rgba(15,22,48,.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:50;padding:14px 16px 14px;}
+.title-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.user-av{width:38px;height:38px;border-radius:50%;background:var(--surf);border:1px solid var(--brd2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;overflow:hidden;}
 .user-av img{width:100%;height:100%;object-fit:cover;}
-#app-title{font-size:18px;font-weight:700;flex:1;}
-#ver{font-size:10px;color:var(--muted);background:var(--surf2);border:1px solid var(--brd);border-radius:8px;padding:1px 6px;font-weight:600;}
-#sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;transition:background 0.3s;}
-#sync-dot.spin{background:var(--yellow);box-shadow:0 0 6px var(--yellow);}
+#app-title{font-size:20px;font-weight:800;flex:1;letter-spacing:-0.03em;}
+#ver{font-size:9.5px;color:var(--muted);background:var(--surf);border:1px solid var(--brd);border-radius:999px;padding:3px 8px;font-weight:700;}
+#sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;transition:background 0.3s;}
+#sync-dot.spin{background:var(--yellow);box-shadow:0 0 8px var(--yellow);}
+/* Chevron statt Text-Pfeil — dreht sich sanft beim Auf-/Zuklappen */
+.chev{width:16px;height:16px;flex-shrink:0;transition:transform .28s cubic-bezier(.4,0,.2,1);opacity:.55;}
+.chev.open{transform:rotate(180deg);opacity:.85;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(1.3);}}
 @keyframes badgeGlow{0%,100%{box-shadow:0 0 4px #ff5a5a99;}50%{box-shadow:0 0 12px var(--red),0 0 4px var(--red);}}
 .whatsnew-badge{display:none;align-items:center;gap:3px;background:linear-gradient(135deg,var(--red),#ff8a8a);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;flex-shrink:0;animation:pulse 1.4s infinite,badgeGlow 1.4s infinite;}
-#sync-lbl{font-size:11px;color:var(--muted);}
-.tabs{display:flex;}
-.tab{flex:1;padding:9px 0;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;transition:all 0.15s;}
-.tab.on{color:var(--blue);border-bottom-color:var(--blue);}
-.bdg{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:3px;}
-.bdg.g{background:var(--green);}
+#sync-lbl{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+/* Umschalter: dunkle Blase, die auf der hellen Fläche schwebt */
+.tabs{display:flex;gap:5px;background:var(--dark);border:1px solid var(--brd);border-radius:999px;padding:5px;
+  box-shadow:0 6px 20px rgba(0,0,0,.32);}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 0;border:none;
+  background:transparent;border-radius:999px;cursor:pointer;font-size:14px;font-weight:700;
+  color:var(--sub);transition:all .25s cubic-bezier(.4,0,.2,1);font-family:inherit;}
+.tab.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
+  box-shadow:0 4px 18px var(--acc-glow);}
+.bdg{background:var(--acc);color:#fff;border-radius:999px;font-size:10.5px;font-weight:800;padding:2px 7px;min-width:20px;text-align:center;}
+.tab .bdg{background:rgba(255,255,255,.14);color:var(--sub);}
+.tab.on .bdg{background:rgba(255,255,255,.28);color:#fff;}
+.bdg.g{background:var(--green);color:#08243a;}
 /* Body */
-#body{padding:14px 14px 110px;}
-.pg{display:none;}.pg.on{display:block;}
-/* Search */
-.srch{width:100%;padding:10px 14px;border-radius:12px;border:1px solid var(--brd);background:var(--surf);color:var(--txt);font-size:14px;margin-bottom:14px;outline:none;}
+#body{padding:18px 14px 120px;}
+.pg{display:none;}.pg.on{display:block;animation:fadeUp .3s cubic-bezier(.4,0,.2,1);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+/* Suche */
+.srch{width:100%;padding:15px 20px;border-radius:999px;border:1px solid var(--brd);background:var(--surf);
+  color:var(--txt);font-size:15px;margin-bottom:18px;outline:none;font-family:inherit;transition:.2s;box-shadow:var(--sh);}
+.srch:focus{border-color:var(--bbrd);}
+.srch::placeholder{color:var(--muted);}
 /* Section */
-.sec{margin-bottom:22px;}
-.sec-hd{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--sub);margin-bottom:10px;}
-.cat-hd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;margin-bottom:12px;border:1.5px solid;user-select:none;}
-.cat-hd .cat-hd-label{font-weight:800;font-size:16px;color:var(--txt);letter-spacing:0.2px;}
-.cat-hd .cat-hd-count{color:var(--sub);font-size:11.5px;font-weight:600;}
-.item-thumb{width:30px;height:30px;border-radius:8px;flex-shrink:0;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;}
+.sec{margin-bottom:26px;}
+/* Unterkategorie-Überschrift — bewusst GRÖSSER als die Artikel darunter,
+   damit die Gliederung sofort erkennbar ist */
+.sec-hd{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;letter-spacing:-0.02em;
+  color:var(--txt);margin:16px 0 9px;padding:4px 6px;border-radius:12px;transition:background .2s;}
+.sec-hd:active{background:var(--surf2);}
+/* Kategorie-Karte mit kräftigem Farbverlauf wie in der Vorlage */
+.cat-hd{display:flex;align-items:center;gap:14px;padding:18px;border-radius:24px;margin-bottom:14px;
+  border:none;user-select:none;position:relative;overflow:hidden;
+  transition:transform .15s,box-shadow .2s;}
+.cat-hd.cat-s{background:var(--grad-violet);box-shadow:0 8px 26px rgba(124,77,255,.34);}
+.cat-hd.cat-d{background:var(--grad-cyan);box-shadow:0 8px 26px rgba(34,150,238,.32);}
+.cat-hd:active{transform:scale(.985);}
+/* dezenter Lichtkreis rechts oben — wie auf den Karten in der Vorlage */
+.cat-hd::after{content:'';position:absolute;top:-58px;right:-28px;width:130px;height:130px;
+  border-radius:50%;background:rgba(255,255,255,.13);pointer-events:none;}
+.cat-ico{width:52px;height:52px;border-radius:17px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:25px;background:rgba(255,255,255,.2);position:relative;z-index:1;}
+.cat-hd>*:not(.cat-hd::after){position:relative;z-index:1;}
+.cat-hd .cat-hd-label{font-weight:800;font-size:18px;color:#fff;letter-spacing:-0.03em;display:block;}
+.cat-hd .cat-hd-count{color:rgba(255,255,255,.82);font-size:13.5px;font-weight:500;display:block;margin-top:2px;}
+.cat-hd .bdg{background:rgba(255,255,255,.28);color:#fff;position:relative;z-index:1;}
+.cat-hd .chev{color:#fff;opacity:.85;position:relative;z-index:1;}
+.item-thumb{width:38px;height:38px;border-radius:12px;flex-shrink:0;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;}
 .sec-ct{margin-left:auto;color:var(--muted);font-size:11px;}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.dot.g{background:var(--green);box-shadow:0 0 5px #3ddc8466;}
-.dot.o{background:var(--orange);box-shadow:0 0 5px #ff8c5a66;}
-.dot.p{background:var(--purple);box-shadow:0 0 5px #a78bfa66;}
-/* Catalog item */
-.ci{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;margin-bottom:6px;background:var(--surf);border:1px solid var(--brd);cursor:pointer;transition:all 0.15s;user-select:none;}
-.ci.sel{background:var(--bdim);border-color:var(--bbrd);}
-.chk{width:22px;height:22px;border-radius:6px;flex-shrink:0;border:2px solid var(--brd2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:all 0.15s;}
-.ci.sel .chk{border:none;background:var(--blue);box-shadow:0 0 8px #6c8eff55;color:#fff;}
-.iname{flex:1;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.added-by{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;}
+.dot.g{background:var(--green);}
+.dot.o{background:var(--orange);}
+.dot.p{background:var(--purple);}
+/* Artikel-Zeile — Schrift kleiner als die Überschrift darüber.
+   Die Artikel tragen die Farbe ihrer Kategorie: Supermarkt violett,
+   Drogerie cyan-blau — dadurch bleibt sichtbar, wozu sie gehören. */
+.ci{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:16px;margin-bottom:7px;
+  background:var(--surf);border:1px solid var(--brd);cursor:pointer;user-select:none;box-shadow:var(--sh);
+  transition:background .18s,border-color .18s,transform .12s;}
+.ci:active{transform:scale(.99);}
+/* nicht gewählt: nur ein Hauch der Kategoriefarbe */
+.ci.ci-s{background:rgba(124,77,255,.09);border-color:rgba(124,77,255,.18);}
+.ci.ci-d{background:rgba(45,170,240,.09);border-color:rgba(45,170,240,.18);}
+/* gewählt: deutlich in der Kategoriefarbe */
+.ci.ci-s.sel{background:rgba(124,77,255,.26);border-color:rgba(155,110,255,.6);}
+.ci.ci-d.sel{background:rgba(45,170,240,.26);border-color:rgba(60,190,245,.6);}
+.chk{width:24px;height:24px;border-radius:8px;flex-shrink:0;border:2px solid var(--brd2);display:flex;
+  align-items:center;justify-content:center;font-size:13px;font-weight:700;transition:all .18s;}
+.ci.sel .chk{border:none;color:#fff;}
+.ci.ci-s.sel .chk{background:var(--grad-violet);box-shadow:0 2px 10px rgba(124,77,255,.5);}
+.ci.ci-d.sel .chk{background:var(--grad-cyan);box-shadow:0 2px 10px rgba(45,170,240,.5);}
+/* Lange Namen dürfen auf zwei Zeilen umbrechen statt früh abgeschnitten zu
+   werden ("Hafers…") — die Mengensteuerung nimmt sonst zu viel Breite weg. */
+.iname{flex:1;font-size:15px;font-weight:600;min-width:0;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow-wrap:break-word;line-height:1.28;}
+.added-by{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px;}
 .added-av{width:16px;height:16px;border-radius:50%;background:var(--surf2);display:inline-flex;align-items:center;justify-content:center;font-size:9px;overflow:hidden;flex-shrink:0;}
 .added-av img{width:100%;height:100%;object-fit:cover;}
-.qty-row{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-.qb{width:26px;height:26px;border-radius:6px;border:1px solid var(--brd2);background:var(--surf2);cursor:pointer;font-size:15px;font-weight:700;color:var(--sub);}
-.qn{min-width:28px;text-align:center;font-size:14px;font-weight:600;}
-.qu{font-size:11px;color:var(--muted);}
-.del{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:14px;color:var(--muted);opacity:0.4;flex-shrink:0;}
-/* Add panel */
-.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:12px;border:1px dashed;background:transparent;cursor:pointer;font-size:14px;font-weight:600;}
-.add-btn.g{border-color:var(--gbrd);color:var(--green);}
-.add-btn.o{border-color:var(--obrd);color:var(--orange);}
-.add-panel{background:var(--surf);border-radius:14px;padding:14px;margin-bottom:8px;border:1px solid var(--brd2);}
-.add-panel-ttl{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:10px;text-transform:uppercase;letter-spacing:1.5px;}
-.add-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-.ai{flex:2;padding:10px 12px;border-radius:9px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:14px;min-width:0;outline:none;}
-.as{width:56px;padding:10px 6px;border-radius:9px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:13px;text-align:center;outline:none;}
-.asel{padding:10px 8px;border-radius:9px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:13px;}
-.btn-row{display:flex;gap:8px;}
-.btn-c{flex:1;padding:10px;border-radius:9px;border:1px solid var(--brd2);background:transparent;color:var(--sub);font-weight:600;font-size:14px;cursor:pointer;}
-.btn-ok{flex:1;padding:10px;border-radius:9px;border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
-.btn-ok.g{background:var(--green);color:#0f1117;}
-.btn-ok.o{background:var(--orange);color:#0f1117;}
+/* Mengen-Steuerung als zusammenhängende Pille */
+/* sitzt unter dem Namen, damit lange Artikelnamen die volle Breite haben */
+.qty-row{display:inline-flex;align-items:center;gap:2px;flex-shrink:0;background:rgba(0,0,0,.3);
+  border:1px solid var(--brd);border-radius:999px;padding:3px;margin-top:8px;}
+.qb{width:26px;height:26px;border-radius:50%;border:none;background:transparent;cursor:pointer;
+  font-size:16px;font-weight:600;color:var(--txt);line-height:1;transition:background .15s;font-family:inherit;}
+.qb:active{background:rgba(255,255,255,.12);}
+.qn{min-width:20px;text-align:center;font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+.qu{font-size:11px;color:var(--muted);padding-right:6px;font-weight:600;}
+/* Stift/Papierkorb dezent: entsättigt, damit sie auf Weiß nicht blass-bunt wirken */
+.del{width:30px;height:30px;border-radius:9px;border:none;background:transparent;cursor:pointer;font-size:14px;
+  color:var(--muted);opacity:.5;flex-shrink:0;filter:grayscale(.7);transition:opacity .15s,filter .15s;}
+.del:active{opacity:1;filter:none;}
+/* Hinzufügen */
+.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;
+  border-radius:16px;border:1.5px dashed;background:transparent;cursor:pointer;font-size:14.5px;
+  font-weight:700;font-family:inherit;transition:background .18s;}
+.add-btn:active{background:var(--surf);}
+.add-btn.g,.add-btn.o{border-color:var(--bbrd);color:var(--acc);}
+.add-panel{background:var(--surf);border-radius:20px;padding:18px;margin-bottom:8px;border:1px solid var(--brd);box-shadow:var(--sh);}
+.add-panel-ttl{font-size:11px;font-weight:800;color:var(--sub);margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em;}
+.add-row{display:flex;gap:9px;margin-bottom:11px;flex-wrap:wrap;}
+.ai{flex:2;padding:13px 15px;border-radius:14px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:15px;min-width:0;outline:none;font-family:inherit;transition:.18s;}
+.ai:focus{border-color:var(--bbrd);}
+.as{width:62px;padding:13px 6px;border-radius:14px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:14px;text-align:center;outline:none;font-family:inherit;}
+.asel{padding:13px 10px;border-radius:14px;border:1px solid var(--brd2);background:var(--surf2);color:var(--txt);font-size:14px;font-family:inherit;}
+.btn-row{display:flex;gap:9px;}
+.btn-c{flex:1;padding:13px;border-radius:999px;border:1px solid var(--brd2);background:transparent;color:var(--sub);font-weight:700;font-size:14.5px;cursor:pointer;font-family:inherit;transition:.18s;}
+.btn-c:active{background:var(--surf2);}
+.btn-ok{flex:1;padding:13px;border-radius:999px;border:none;color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;transition:transform .12s;}
+.btn-ok:active{transform:scale(.97);}
+.btn-ok.g{background:var(--green);color:#fff;}
+.btn-ok.o{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;}
 .btn-ok.r{background:var(--red);}
-.btn-ok.b{background:var(--blue);}
-/* Progress */
-.prog-wrap{margin-bottom:18px;}
-.prog-info{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:6px;}
-.prog-track{height:6px;background:var(--surf2);border-radius:99px;overflow:hidden;}
-.prog-bar{height:100%;border-radius:99px;transition:width 0.4s;background:linear-gradient(90deg,var(--blue),var(--purple));}
-.prog-bar.done{background:var(--green);box-shadow:0 0 12px #3ddc8455;}
-/* Shop item */
-.si{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;margin-bottom:8px;background:var(--surf);border:1px solid var(--brd);cursor:pointer;transition:all 0.2s;}
-.si.done{background:var(--gdim);border-color:var(--gbrd);}
-.si-chk{width:26px;height:26px;border-radius:13px;flex-shrink:0;border:2px solid var(--brd2);background:transparent;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;transition:all 0.2s;}
-.si.done .si-chk{border:none;background:var(--green);color:#0f1117;box-shadow:0 0 10px #3ddc8455;}
-.si-name{flex:1;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-ok.b{background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 4px 16px var(--acc-glow);}
+/* Fortschritt als großer Ring — die Kennzahl auf einen Blick */
+.prog-wrap{display:flex;align-items:center;gap:20px;background:var(--surf);border:1px solid var(--brd);
+  border-radius:26px;padding:20px 22px;margin-bottom:20px;box-shadow:var(--sh);}
+.ring-box{position:relative;width:104px;height:104px;flex-shrink:0;}
+.ring-box svg{width:100%;height:100%;transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--surf2);stroke-width:9;}
+.ring-fg{fill:none;stroke:url(#ringGrad);stroke-width:9;stroke-linecap:round;
+  transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);}
+.ring-box.done .ring-fg{stroke:var(--green);}
+.ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-pct{font-size:25px;font-weight:800;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;line-height:1;}
+.ring-lbl{font-size:9.5px;color:var(--muted);font-weight:700;letter-spacing:.09em;margin-top:3px;}
+.prog-side{flex:1;min-width:0;}
+.prog-big{font-size:20px;font-weight:800;letter-spacing:-0.03em;}
+.prog-small{font-size:13px;color:var(--sub);margin-top:3px;font-weight:500;}
+.prog-chips{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap;}
+.chip{font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--surf2);color:var(--sub);}
+.chip.on{background:var(--acc-soft);color:#c0410f;}
+/* Einkaufen-Zeile — ebenfalls in der Farbe ihrer Kategorie */
+.si{display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:18px;margin-bottom:8px;
+  background:var(--surf);border:1px solid var(--brd);cursor:pointer;box-shadow:var(--sh);
+  transition:background .2s,border-color .2s,transform .12s,opacity .2s;}
+.si:active{transform:scale(.99);}
+.si.si-s{background:rgba(124,77,255,.13);border-color:rgba(124,77,255,.26);}
+.si.si-d{background:rgba(45,170,240,.13);border-color:rgba(45,170,240,.26);}
+/* erledigt: zurückgenommen statt eingefärbt — sonst wäre es bei Drogerie
+   nicht mehr vom offenen Zustand zu unterscheiden */
+.si.done{background:rgba(255,255,255,.04)!important;border-color:var(--brd)!important;
+  box-shadow:none;opacity:.6;}
+.si-chk{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:2px solid var(--brd2);background:transparent;
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;transition:all .2s;}
+.si.done .si-chk{border:none;color:#fff;}
+.si.si-s.done .si-chk{background:var(--grad-violet);}
+.si.si-d.done .si-chk{background:var(--grad-cyan);}
+.si-name{flex:1;font-size:15px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.2s;}
 .si.done .si-name{color:var(--muted);text-decoration:line-through;}
 .si-right{text-align:right;flex-shrink:0;}
-.si-qty{font-size:13px;color:var(--sub);font-weight:600;}
+.si-qty{font-size:14px;color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums;}
 .si-who{font-size:11px;color:var(--muted);margin-top:2px;}
 /* Verlauf */
 .vg{margin-bottom:22px;}
@@ -127,25 +232,29 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe
 .vi-meta{font-size:12px;color:var(--muted);}
 .vi-del{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:14px;color:var(--muted);opacity:0.5;}
 .clr-btn{width:100%;padding:11px;border-radius:12px;border:1px solid var(--obrd);background:transparent;color:var(--orange);font-weight:600;font-size:14px;cursor:pointer;margin-top:4px;}
-/* Empty */
-.empty{text-align:center;padding:50px 0;}
-.empty .ei{font-size:52px;margin-bottom:14px;}
-.empty .em{color:var(--sub);}
-.empty .eh{color:var(--muted);font-size:13px;margin-top:8px;}
-/* Done banner */
-.done-banner{text-align:center;padding:22px 0;}
-.done-banner .de{font-size:38px;}
-.done-banner .dt{color:var(--green);font-weight:700;font-size:17px;margin-top:8px;}
-/* Reset btn */
-.reset-btn{width:100%;padding:12px;border-radius:12px;border:1px solid var(--brd);background:var(--surf);color:var(--sub);font-weight:600;font-size:14px;cursor:pointer;margin-top:10px;}
-/* No results */
+/* Leerzustand */
+.empty{text-align:center;padding:60px 20px;}
+.empty .ei{font-size:56px;margin-bottom:16px;opacity:.85;}
+.empty .em{color:var(--txt);font-size:16.5px;font-weight:700;}
+.empty .eh{color:var(--muted);font-size:13.5px;margin-top:8px;line-height:1.5;}
+/* Fertig-Banner — grüner Erfolgs-Kreis wie im Vorbild */
+.done-banner{text-align:center;padding:26px 0;}
+.done-banner .de{width:66px;height:66px;margin:0 auto;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:32px;background:var(--gdim);border:2px solid var(--gbrd);}
+.done-banner .dt{color:var(--green);font-weight:800;font-size:18px;margin-top:14px;letter-spacing:-0.02em;}
+.reset-btn{width:100%;padding:15px;border-radius:999px;border:1px solid var(--brd2);background:var(--surf);
+  color:var(--txt);font-weight:700;font-size:14.5px;cursor:pointer;margin-top:14px;font-family:inherit;transition:.18s;}
+.reset-btn:active{background:var(--surf2);}
 .nores{color:var(--muted);font-size:13px;padding:8px 12px;}
 /* Dialog */
-#ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(5px);}
+#ovl{display:none;position:fixed;inset:0;background:rgba(6,10,26,.72);z-index:100;align-items:center;
+  justify-content:center;padding:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
 #ovl.on{display:flex;}
-#dlg{background:var(--surf);border:1px solid var(--brd2);border-radius:18px;padding:24px;width:100%;max-width:340px;}
-#dlg-ttl{font-size:17px;font-weight:700;margin-bottom:8px;}
-#dlg-msg{font-size:14px;color:var(--sub);margin-bottom:20px;line-height:1.5;}
+#dlg{background:var(--surf);border:1px solid var(--brd);border-radius:26px;padding:26px;width:100%;
+  max-width:360px;box-shadow:var(--sh-lg);animation:dlgIn .26s cubic-bezier(.4,0,.2,1);}
+@keyframes dlgIn{from{opacity:0;transform:scale(.94) translateY(12px);}to{opacity:1;transform:none;}}
+#dlg-ttl{font-size:18.5px;font-weight:800;margin-bottom:8px;letter-spacing:-0.02em;}
+#dlg-msg{font-size:14.5px;color:var(--sub);margin-bottom:22px;line-height:1.55;}
   </style>
 </head>
 <body>
@@ -187,15 +296,15 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe
       <button class="tab on" data-tab="planen" onclick="switchTab('planen')">📋 Planen<span id="b-plan" class="bdg" style="display:none"></span></button>
       <button class="tab" data-tab="einkaufen" onclick="switchTab('einkaufen')">🛒 Einkaufen<span id="b-shop" class="bdg" style="display:none"></span></button>
     </div>
-    <div id="notif-banner" style="display:none;align-items:center;gap:8px;padding:8px 4px;font-size:12.5px;color:var(--sub)">
-      <span class="nb-text" style="flex:1"></span>
-      <button class="nb-btn" onclick="enableNotifications()" style="padding:6px 12px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">Aktivieren</button>
+    <div id="notif-banner" style="display:none;align-items:center;gap:10px;padding:13px 15px;margin-top:12px;font-size:13.5px;color:var(--sub);background:var(--surf);border:1px solid var(--brd);border-radius:18px;box-shadow:var(--sh)">
+      <span class="nb-text" style="flex:1;line-height:1.4"></span>
+      <button class="nb-btn" onclick="enableNotifications()" style="padding:9px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit;box-shadow:0 3px 12px var(--acc-glow)">Aktivieren</button>
     </div>
   </div>
 
 <!-- Avatar-Dialog -->
-<div id="av-dlg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(5px);" onclick="closeAvDlg()">
-  <div style="background:var(--surf);border:1px solid var(--brd2);border-radius:18px;padding:24px;width:100%;max-width:340px;" onclick="event.stopPropagation()">
+<div id="av-dlg" style="display:none;position:fixed;inset:0;background:rgba(6,10,26,0.72);z-index:200;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);" onclick="closeAvDlg()">
+  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:26px;padding:26px;width:100%;max-width:350px;box-shadow:var(--sh-lg)" onclick="event.stopPropagation()">
     <div style="font-size:17px;font-weight:700;margin-bottom:6px;">Profil bearbeiten</div>
     <div style="font-size:13px;color:var(--sub);margin-bottom:16px;">Avatar und Name ändern</div>
     <div class="avatar-grid" id="av-dlg-grid">
@@ -228,8 +337,28 @@ html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,'Segoe
     <div class="pg" id="pg-einkaufen">
       <div id="prog-wrap" style="display:none">
         <div class="prog-wrap">
-          <div class="prog-info"><span id="prog-txt"></span><span id="prog-pct"></span></div>
-          <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
+          <div class="ring-box" id="ring-box">
+            <svg viewBox="0 0 120 120">
+              <defs>
+                <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#e930d8"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="52"
+                      stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+            </svg>
+            <div class="ring-mid">
+              <div class="ring-pct" id="prog-pct">0%</div>
+              <div class="ring-lbl">ERLEDIGT</div>
+            </div>
+          </div>
+          <div class="prog-side">
+            <div class="prog-big" id="prog-txt">0 von 0</div>
+            <div class="prog-small" id="prog-sub">Artikel abgehakt</div>
+            <div class="prog-chips" id="prog-chips"></div>
+          </div>
         </div>
       </div>
       <div id="shop-supermarkt"></div>
@@ -255,7 +384,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="3.5.2";
+const VER="4.0.0";
 
 const DEFAULTS={
   s:[
@@ -457,19 +586,44 @@ function migrate(d){
 
   return d;
 }
+// Gibt zurück, ob das Speichern wirklich geklappt hat. Wichtig: Ein abgelehnter
+// Request (z.B. zu große Datenmenge durch viele Fotos) wirft KEINE Exception —
+// ohne die r.ok-Prüfung hielte die App das Speichern fälschlich für erfolgreich
+// und niemand in der Familie bekäme den neuen Artikel je zu sehen.
 async function sbSave(data){
   try{
-    await fetch(`${SB_URL}/rest/v1/einkaufsliste`,{
+    const r = await fetch(`${SB_URL}/rest/v1/einkaufsliste`,{
       method:"POST",
       headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},
       body:JSON.stringify({id:"main",data,updated_at:data.updatedAt})
     });
-  }catch(e){console.warn("sbSave:",e);}
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      console.warn("sbSave abgelehnt:", r.status, txt.slice(0,300));
+      return false;
+    }
+    return true;
+  }catch(e){console.warn("sbSave:",e);return false;}
 }
 
 // ── LocalStorage ──────────────────────────────────────────────────────────────
 function lsGet(){try{const v=localStorage.getItem(LS_KEY);return v?JSON.parse(v):null;}catch{return null;}}
-function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify({state:S,me:ME}));}catch{}}
+
+// Der lokale Zwischenspeicher ist auf wenige MB begrenzt. Passen die Fotos nicht
+// mehr hinein, wird der Cache OHNE Bilder gespeichert statt gar nicht — die App
+// startet dann weiterhin schnell, die Bilder kommen beim Sync ohnehin nach.
+function lsSave(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify({state:S,me:ME}));
+  }catch{
+    try{
+      const schlank=JSON.parse(JSON.stringify(S));
+      ['s','d'].forEach(c=>(schlank.cat?.[c]||[]).forEach(i=>{delete i.img;}));
+      (schlank.list||[]).forEach(i=>{delete i.img;delete i.byImg;});
+      localStorage.setItem(LS_KEY,JSON.stringify({state:schlank,me:ME}));
+    }catch{/* dann eben ohne lokalen Cache — der Sync trägt die Daten */}
+  }
+}
 
 // ── Push Notif via OneSignal ────────────────────────────────────────────────
 // Der REST-Key darf NICHT hier im Client stehen (öffentlich einsehbar) —
@@ -623,18 +777,38 @@ async function notify(title, body){
 
 // ── Sync ──────────────────────────────────────────────────────────────────────
 function setSyncing(v){document.getElementById('sync-dot').className=v?'spin':'';}
-function setSyncLbl(){
-  const t=new Date();
-  document.getElementById('sync-lbl').textContent=t.toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'});
+function setSyncLbl(fehler){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-lbl');
+  if(fehler){
+    // Sichtbar machen, statt still zu scheitern: sonst glaubt man, der Artikel
+    // sei bei allen angekommen, obwohl ihn niemand sonst je zu sehen bekommt.
+    dot.style.background='var(--red)';
+    dot.style.boxShadow='0 0 8px var(--red)';
+    lbl.textContent='nicht gespeichert!';
+    lbl.style.color='var(--red)';
+    return;
+  }
+  dot.style.background=''; dot.style.boxShadow='';
+  lbl.style.color='';
+  lbl.textContent=new Date().toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'});
 }
 
 async function push(){
   setSyncing(true);
   S.updatedAt=Date.now(); S.updatedBy=ME.name;
   lsSave();
-  await sbSave(S);
-  setSyncing(false); setSyncLbl();
+  let ok = await sbSave(S);
+  // Kurze Netzaussetzer (Funkloch, WLAN-Wechsel) sind der häufigste Grund für
+  // ein fehlgeschlagenes Speichern. Einmal automatisch nachfassen, bevor
+  // überhaupt eine Warnung erscheint.
+  if(!ok){
+    await new Promise(r=>setTimeout(r,1500));
+    ok = await sbSave(S);
+  }
+  setSyncing(false); setSyncLbl(!ok);
   try{const bc=new BroadcastChannel(LS_KEY);bc.postMessage(S);bc.close();}catch{}
+  return ok;
 }
 
 function applyRemote(d){
@@ -775,6 +949,14 @@ function switchTab(t){
 function onSearch(v){srchQ=v;renderCat('s');renderCat('d');}
 
 // ── Render ────────────────────────────────────────────────────────────────────
+// Gezeichneter Chevron statt Text-Pfeil (▶/▼) — dreht sich beim Aufklappen.
+function chevron(open, size){
+  const s = size || 16;
+  return `<svg class="chev${open?' open':''}" width="${s}" height="${s}" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+    ><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+}
+
 function renderAll(){renderCat('s');renderCat('d');renderShop();renderBadges();}
 
 function renderBadges(){
@@ -811,13 +993,41 @@ const PLAN_SUBCATS_D = [
 ];
 
 function togglePlanGroup(key){
-  planCollapsed[key]=!isPlanCollapsed(key);
+  const jetztZu = !isPlanCollapsed(key);   // Zustand nach dem Klick
+  planCollapsed[key] = jetztZu;
+
+  // Wird eine Hauptkategorie zugeklappt, auch alle ihre Unterkategorien
+  // zurücksetzen — beim nächsten Öffnen ist dann wieder alles eingeklappt
+  // (sonst stünde z.B. „Obst" noch offen, wenn man Supermarkt neu aufmacht).
+  if(jetztZu){
+    const prefix = key === '__supermarkt__' ? 'plan_s_'
+                 : key === '__drogerie__'   ? 'plan_d_'
+                 : null;
+    if(prefix){
+      Object.keys(planCollapsed).forEach(k=>{
+        if(k.startsWith(prefix)) delete planCollapsed[k];
+      });
+    }
+  }
   renderCat('s'); renderCat('d');
 }
 
 // Globale Item-Map für sicheren Zugriff per ID
 // ── Version & Changelog ──────────────────────────────────────────────────────
+// Zeilen, die mit "#" beginnen, werden als Begrüßung/Abschluss hervorgehoben
+// dargestellt (ohne Haken davor) — siehe openChangelog().
 const CHANGELOG = {
+  "4.0.0": [
+    "#Willkommen in der neuen Einkaufsliste! 🎉",
+    "Die App sieht komplett neu aus: klare Farben, größere Schrift und deutlich mehr Übersicht.",
+    "Supermarkt ist jetzt violett, Drogerie blau. Die Artikel haben dieselbe Farbe wie ihre Kategorie — so sieht man auf einen Blick, wozu was gehört.",
+    "Beim Einkaufen zeigt ein großer Ring, wie viel schon erledigt ist, und was bei Supermarkt und Drogerie noch offen ist.",
+    "Klappt man eine Kategorie zu, ist beim nächsten Öffnen wieder alles eingeklappt — man sieht sofort die ganze Übersicht.",
+    "Fotos zu Artikeln sehen jetzt alle in der Familie, nicht mehr nur derjenige, der sie eingefügt hat.",
+    "Benachrichtigungen gehen wieder: Setzt jemand etwas auf die Liste, bekommen die anderen Bescheid.",
+    "Lange Artikelnamen werden nicht mehr abgeschnitten.",
+    "#Fragen? Einfach Papa Bescheid geben. 😊",
+  ],
   "3.5.2": [
     "Push-Benachrichtigungen funktionieren wieder — die Ursache lag am Umzug in einen Unterordner: OneSignal suchte seine Hilfsdatei weiterhin im Hauptverzeichnis und fand sie nicht",
     "Wer die Erlaubnis vorher schon erteilt hatte, wird beim nächsten Öffnen automatisch angemeldet — kein erneutes Einrichten nötig",
@@ -894,13 +1104,25 @@ function checkVersionBadge(){
 
 function openChangelog(){
   const logs = CHANGELOG[VER] || ["Keine Änderungen dokumentiert."];
-  const items = logs.map(l=>`<div style="display:flex;gap:8px;margin-bottom:10px"><span style="color:var(--green);font-size:16px">✓</span><span style="font-size:14px;color:var(--sub);line-height:1.4">${l}</span></div>`).join('');
-  openDlg(
-    `🆕 Neu in v${VER}`,
-    '',
-    `<div style="margin-bottom:16px">${items}</div>
-     <button class="btn-ok b" style="width:100%" onclick="markVersionSeen()">Verstanden ✓</button>`
-  );
+  const items = logs.map((l,idx)=>{
+    if(l.startsWith('#')){
+      // Begrüßung bzw. Schlusssatz: hervorgehoben, ohne Haken davor
+      const oben = idx===0 ? '0 0 16px' : '18px 0 2px';
+      return `<div style="font-size:15.5px;font-weight:700;color:var(--txt);line-height:1.45;margin:${oben}">${l.slice(1)}</div>`;
+    }
+    return `<div style="display:flex;gap:9px;margin-bottom:11px">`
+      + `<span style="color:var(--green);font-size:15px;flex-shrink:0">✓</span>`
+      + `<span style="font-size:14px;color:var(--sub);line-height:1.45">${l}</span></div>`;
+  }).join('');
+  // Inhalt gehört in dlg-msg, nicht in dlg-btns — letzteres ordnet seine
+  // Kinder nebeneinander an (Button-Reihe), dadurch stand der Text sonst
+  // links neben dem Button statt darüber.
+  document.getElementById('dlg-ttl').textContent = `🆕 Neu in v${VER}`;
+  document.getElementById('dlg-msg').innerHTML =
+    `<div style="max-height:52vh;overflow-y:auto;margin:0 -4px;padding:0 4px">${items}</div>`;
+  document.getElementById('dlg-btns').innerHTML =
+    `<button class="btn-ok b" style="width:100%" onclick="markVersionSeen()">Verstanden ✓</button>`;
+  document.getElementById('ovl').classList.add('on');
 }
 
 function markVersionSeen(){
@@ -1004,7 +1226,14 @@ function saveEdit(){
   const scEl = document.getElementById('edit-sc');
   const sc = scEl ? scEl.value : (cat==='d'?'drogerie':'sonstiges');
   S.cat[cat] = S.cat[cat].map(i=> i.id===id ? {...i, n:nm, u, q:qty, sc, icon:editItemIcon, img:editItemImg} : i);
-  S.list = S.list.map(i=> i.id===id ? {...i, n:nm, u, qty, subcat:sc, icon:editItemIcon, img:editItemImg} : i);
+  // Bild bleibt nur am Katalog-Artikel; alte Kopien am Listen-Eintrag werden
+  // hier gleich mit entfernt, damit die Datenmenge nicht unnötig mitwächst.
+  S.list = S.list.map(i=>{
+    if(i.id!==id) return i;
+    const n2={...i, n:nm, u, qty, subcat:sc};
+    delete n2.icon; delete n2.img;
+    return n2;
+  });
   editTarget = null;
   closeDlg(); renderAll(); push();
 }
@@ -1018,7 +1247,7 @@ function itemHtml(item, cat){
   const thumb = item.img
     ? `<div class="item-thumb"><img src="${item.img}" style="width:100%;height:100%;object-fit:cover"/></div>`
     : (item.icon ? `<div class="item-thumb" style="font-size:17px">${item.icon}</div>` : '');
-  return `<div class="ci${sel?' sel':''}" onclick="handleItemClick('${id}','${cat}')"
+  return `<div class="ci ci-${cat}${sel?' sel':''}" onclick="handleItemClick('${id}','${cat}')"
     onmousedown="lpStart('${id}','${cat}')" onmouseup="lpCancel()" onmouseleave="lpCancel()"
     ontouchstart="lpStart('${id}','${cat}')" ontouchend="lpCancel()" ontouchcancel="lpCancel()">
     <div class="chk">${sel?'✓':''}</div>
@@ -1026,13 +1255,13 @@ function itemHtml(item, cat){
     <div style="flex:1;min-width:0">
       <div class="iname">${esc(nm)}</div>
       ${addedBy}
+      ${sel?`<div class="qty-row" onclick="event.stopPropagation()">
+        <button class="qb" onclick="updQty('${id}',${Math.max(1,(li.qty||1)-1)})">−</button>
+        <span class="qn">${li.qty||1}</span>
+        <button class="qb" onclick="updQty('${id}',${(li.qty||1)+1})">+</button>
+        <span class="qu">${esc(unit)}</span>
+      </div>`:''}
     </div>
-    ${sel?`<div class="qty-row" onclick="event.stopPropagation()">
-      <button class="qb" onclick="updQty('${id}',${Math.max(1,(li.qty||1)-1)})">−</button>
-      <span class="qn">${li.qty||1}</span>
-      <button class="qb" onclick="updQty('${id}',${(li.qty||1)+1})">+</button>
-      <span class="qu">${esc(unit)}</span>
-    </div>`:''}
     <button class="del" style="opacity:0.4" onclick="event.stopPropagation();openEdit('${id}','${cat}')" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">✏️</button>
     <button class="del" style="opacity:0.4" onclick="event.stopPropagation();openDel('${id}','${cat}','${nm.replace(/'/g,"\\'")}')" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">🗑️</button>
   </div>`;
@@ -1104,11 +1333,15 @@ function selectItemIcon(icon){
 
 function selectItemPhoto(inp){
   const f=inp.files[0]; if(!f) return;
+  // 400px/0.7 statt 480px/0.8: angezeigt wird das Bild als 38px-Vorschau bzw.
+  // maximal 300px in der Großansicht — sichtbar ändert sich nichts, die
+  // Datenmenge sinkt aber auf etwa ein Drittel. Das hält den Sync für alle
+  // zuverlässig, auch wenn viele Artikel ein Foto bekommen.
   resizePhoto(f, (dataUrl)=>{
     closeDlg();
     if(itemImgPickerCallback) itemImgPickerCallback('', dataUrl);
     itemImgPickerCallback = null;
-  }, 480, 0.8);
+  }, 400, 0.7);
 }
 
 // ── Langes Drücken: Artikelbild groß anzeigen ────────────────────────────────
@@ -1124,15 +1357,29 @@ function lpStart(id, cat){
 }
 function lpCancel(){ clearTimeout(lpTimer); }
 
+// Liefert Bild/Symbol eines Artikels — fehlt es am Listen-Eintrag, wird auf den
+// Katalog zurückgegriffen. Das deckt Alt-Einträge ab, die vor dem Fix von
+// v3.4.5 angelegt wurden und die Felder gar nicht mitbekommen haben.
+function itemMedia(item, cat){
+  const c = cat || item.cat;
+  const k = (S.cat[c]||[]).find(x=>x.id===item.id);
+  return {
+    img:  item.img  || (k && k.img)  || '',
+    icon: item.icon || (k && k.icon) || ''
+  };
+}
+
 function showItemPreview(id, cat){
   let item = S.list.find(i=>i.id===id);
   if(!item && cat) item = getItem(id, cat);
-  if(!item || (!item.img && !item.icon)) return;
+  if(!item) return;
+  const media = itemMedia(item, cat);
+  if(!media.img && !media.icon) return;
   const nm = item.n||item.name||'';
   document.getElementById('dlg-ttl').textContent = nm;
-  document.getElementById('dlg-msg').innerHTML = item.img
-    ? `<div style="display:flex;justify-content:center;padding:4px 0"><img src="${item.img}" style="width:100%;max-width:300px;aspect-ratio:1/1;object-fit:cover;border-radius:18px"/></div>`
-    : `<div style="display:flex;justify-content:center;padding:36px 0;font-size:120px">${item.icon}</div>`;
+  document.getElementById('dlg-msg').innerHTML = media.img
+    ? `<div style="display:flex;justify-content:center;padding:4px 0"><img src="${media.img}" style="width:100%;max-width:300px;aspect-ratio:1/1;object-fit:cover;border-radius:18px"/></div>`
+    : `<div style="display:flex;justify-content:center;padding:36px 0;font-size:120px">${media.icon}</div>`;
   document.getElementById('dlg-btns').innerHTML = `<button class="btn-c" style="width:100%" onclick="closeDlg()">Schließen</button>`;
   document.getElementById('ovl').classList.add('on');
 }
@@ -1363,15 +1610,15 @@ function renderCat(cat){
   const builtin=isS?PLAN_SUBCATS_S:PLAN_SUBCATS_D;
   const userCats=getUserCats()[cat]||[];
   const allSubcats=[...builtin, ...userCats];
-  const bg=isS?'var(--gdim)':'var(--odim)';
-  const brd=isS?'var(--gbrd)':'var(--obrd)';
-
-  let html=`<div class="cat-hd" style="cursor:pointer;background:${bg};border-color:${brd}" onclick="togglePlanGroup('${mainKey}')">
-    <span style="font-size:22px">${mainIcon}</span>
-    <span class="cat-hd-label">${mainLabel}</span>
-    <span class="cat-hd-count">${total} Artikel</span>
+  const open=!isPlanCollapsed(mainKey);
+  let html=`<div class="cat-hd cat-${cat}" style="cursor:pointer" onclick="togglePlanGroup('${mainKey}')">
+    <div class="cat-ico">${mainIcon}</div>
+    <div style="flex:1;min-width:0">
+      <span class="cat-hd-label">${mainLabel}</span>
+      <span class="cat-hd-count">${total} Artikel${selected>0?` · ${selected} gewählt`:''}</span>
+    </div>
     ${selected>0?`<span class="bdg">${selected}</span>`:''}
-    <span style="margin-left:auto;color:var(--muted);font-size:14px">${isPlanCollapsed(mainKey)?'▶':'▼'}</span>
+    ${chevron(open,18)}
   </div>`;
 
   if(!isPlanCollapsed(mainKey)){
@@ -1386,16 +1633,16 @@ function renderCat(cat){
       const customActions=isCustom?`
         <button onclick="event.stopPropagation();editUserCat('${cat}','${key}')" style="background:none;border:none;color:var(--muted);opacity:0.55;cursor:pointer;font-size:13px;padding:2px">✏️</button>
         <button onclick="event.stopPropagation();deleteUserCat('${cat}','${key}')" style="background:none;border:none;color:var(--muted);opacity:0.55;cursor:pointer;font-size:13px;padding:2px">🗑️</button>`:'';
-      html+=`<div style="margin-left:12px">
-        <div class="sec-hd" style="cursor:pointer;padding:6px 0" onclick="event.stopPropagation();togglePlanGroup('${collKey}')">
-          <span style="font-size:16px">${icon}</span>
+      html+=`<div style="margin-left:6px">
+        <div class="sec-hd" style="cursor:pointer" onclick="event.stopPropagation();togglePlanGroup('${collKey}')">
+          <span style="font-size:20px">${icon}</span>
           <span>${label}</span>
-          <span style="color:var(--muted);font-size:11px">${items.length}</span>
-          ${selCount>0?`<span class="bdg" style="background:var(--green)">${selCount}</span>`:''}
+          <span style="color:var(--muted);font-size:13px;font-weight:600">${items.length}</span>
+          ${selCount>0?`<span class="bdg g">${selCount}</span>`:''}
           ${customActions}
-          <span style="margin-left:auto;color:var(--muted);font-size:12px">${collapsed?'▶':'▼'}</span>
+          <span style="margin-left:auto;display:flex;align-items:center">${chevron(!collapsed,15)}</span>
         </div>
-        ${collapsed?'':items.length?items.map(i=>itemHtml(i,cat)).join(''):`<div style="color:var(--muted);font-size:13px;padding:6px 12px">Noch keine Artikel</div>`}
+        ${collapsed?'':items.length?items.map(i=>itemHtml(i,cat)).join(''):`<div style="color:var(--muted);font-size:13px;padding:6px 14px 12px">Noch keine Artikel</div>`}
       </div>`;
     });
 
@@ -1404,7 +1651,7 @@ function renderCat(cat){
     if(planAddOpen===cat){
       html+=addPanelHtml(cat);
     } else {
-      html+=`<button class="add-btn ${isS?'g':'o'}" style="margin-left:12px;margin-top:4px" onclick="openAdd('${cat}')">+ Artikel hinzufügen</button>`;
+      html+=`<button class="add-btn ${isS?'g':'o'}" style="margin-top:6px" onclick="openAdd('${cat}')">＋ Artikel hinzufügen</button>`;
     }
   }
   el.innerHTML=html;
@@ -1427,11 +1674,29 @@ function renderShop(){
   document.getElementById('done-msg').style.display=(total>0&&done===total)?'block':'none';
   if(total>0){
     const pct=Math.round(done/total*100);
-    document.getElementById('prog-txt').textContent=`${done} von ${total} erledigt`;
+    const alleFertig=done===total;
+
+    document.getElementById('prog-txt').textContent=`${done} von ${total}`;
+    document.getElementById('prog-sub').textContent=alleFertig?'Alles abgehakt 🎉':'Artikel abgehakt';
+
     const pe=document.getElementById('prog-pct');
-    pe.textContent=pct+'%'; pe.style.color=pct===100?'var(--green)':'var(--blue)';
-    const bar=document.getElementById('prog-bar');
-    bar.style.width=pct+'%'; bar.className='prog-bar'+(pct===100?' done':'');
+    pe.textContent=pct+'%';
+    pe.style.color=alleFertig?'var(--green)':'var(--txt)';
+
+    // Ring füllen: Umfang bei r=52 ist 2·π·52 ≈ 326.7
+    const UMFANG=326.7;
+    document.getElementById('ring-fg').style.strokeDashoffset=UMFANG*(1-pct/100);
+    document.getElementById('ring-box').className='ring-box'+(alleFertig?' done':'');
+
+    // Kleine Übersicht: wie viel entfällt auf Supermarkt bzw. Drogerie
+    const chips=[];
+    [['s','🛒 Supermarkt'],['d','🧴 Drogerie']].forEach(([c,lbl])=>{
+      const grp=S.list.filter(i=>i.cat===c);
+      if(!grp.length) return;
+      const offen=grp.filter(i=>!S.checked[i.id]).length;
+      chips.push(`<span class="chip${offen>0?' on':''}">${lbl} ${offen>0?offen+' offen':'fertig ✓'}</span>`);
+    });
+    document.getElementById('prog-chips').innerHTML=chips.join('');
   }
 
   document.getElementById('shop-supermarkt').innerHTML = renderShopCatGroup('s');
@@ -1451,13 +1716,14 @@ function renderShopCatGroup(cat){
   if(!items.length) return '';
 
   const doneCat=items.filter(i=>S.checked[i.id]).length;
-  const bg=isS?'var(--gdim)':'var(--odim)';
-  const brd=isS?'var(--gbrd)':'var(--obrd)';
-
-  let html=`<div class="cat-hd" style="background:${bg};border-color:${brd}">
-    <span style="font-size:22px">${isS?'🛒':'🧴'}</span>
-    <span class="cat-hd-label">${isS?'Supermarkt':'Drogerie'}</span>
-    <span class="cat-hd-count" style="margin-left:auto">${doneCat}/${items.length}</span>
+  const fertig=doneCat===items.length;
+  let html=`<div class="cat-hd cat-${cat}">
+    <div class="cat-ico">${isS?'🛒':'🧴'}</div>
+    <div style="flex:1;min-width:0">
+      <span class="cat-hd-label">${isS?'Supermarkt':'Drogerie'}</span>
+      <span class="cat-hd-count">${fertig?'Alles erledigt':`noch ${items.length-doneCat} offen`}</span>
+    </div>
+    <span class="bdg${fertig?' g':''}">${doneCat}/${items.length}</span>
   </div>`;
 
   allSubcats.forEach(({key,label,icon})=>{
@@ -1470,23 +1736,27 @@ function renderShopCatGroup(cat){
 
     html+=`
       <div class="sec-hd" onclick="toggleShopGroup('${collKey}')" style="cursor:pointer;user-select:none;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:18px">${icon}</span>
-          <span>${label}</span>
-          <span style="font-size:11px;color:var(--muted);font-weight:500">${doneInGroup}/${sItems.length}</span>
-          ${allDone?'<span style="color:var(--green);font-size:12px">✓</span>':''}
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <span style="font-size:20px">${icon}</span>
+          <span style="color:${allDone?'var(--muted)':'var(--txt)'}">${label}</span>
+          <span style="font-size:13px;color:var(--muted);font-weight:600">${doneInGroup}/${sItems.length}</span>
+          ${allDone?'<span style="color:var(--green);font-size:14px">✓</span>':''}
         </div>
-        <span style="color:var(--muted);font-size:13px">${collapsed?'▶':'▼'}</span>
+        <span style="display:flex;align-items:center">${chevron(!collapsed,15)}</span>
       </div>
       ${collapsed?'':sItems.map(item=>{
         const isDone=!!S.checked[item.id];
         const who=item.by?`<div class="si-who">${esc(item.by)}</div>`:'';
-        const thumb = item.img
-          ? `<div class="item-thumb"><img src="${item.img}" style="width:100%;height:100%;object-fit:cover"/></div>`
-          : (item.icon ? `<div class="item-thumb" style="font-size:17px">${item.icon}</div>` : '');
-        return `<div class="si${isDone?' done':''}" onclick="handleShopItemClick('${item.id}')"
-          onmousedown="lpStart('${item.id}',null)" onmouseup="lpCancel()" onmouseleave="lpCancel()"
-          ontouchstart="lpStart('${item.id}',null)" ontouchend="lpCancel()" ontouchcancel="lpCancel()">
+        // Bild/Symbol notfalls aus dem Katalog holen: Einträge, die vor dem
+        // Fix von v3.4.5 auf die Liste kamen, haben die Felder noch nicht —
+        // ohne diesen Rückgriff blieben sie hier dauerhaft ohne Bild.
+        const bild = itemMedia(item, cat);
+        const thumb = bild.img
+          ? `<div class="item-thumb"><img src="${bild.img}" style="width:100%;height:100%;object-fit:cover"/></div>`
+          : (bild.icon ? `<div class="item-thumb" style="font-size:17px">${bild.icon}</div>` : '');
+        return `<div class="si si-${cat}${isDone?' done':''}" onclick="handleShopItemClick('${item.id}')"
+          onmousedown="lpStart('${item.id}','${cat}')" onmouseup="lpCancel()" onmouseleave="lpCancel()"
+          ontouchstart="lpStart('${item.id}','${cat}')" ontouchend="lpCancel()" ontouchcancel="lpCancel()">
           <div class="si-chk">${isDone?'✓':''}</div>
           ${thumb}
           <span class="si-name">${esc(item.n||item.name)}</span>
@@ -1555,7 +1825,10 @@ function toggleItem(item,cat){
     S.list=S.list.filter(i=>i.id!==id);
     queueAddNotification(nm, false); // Artikel entfernt → aus Sammlung raus
   } else {
-    S.list.push({id,n:nm,u:item.u||item.unit,qty:item.q||item.defaultQty||1,cat,subcat:item.sc||(cat==='d'?'drogerie':'sonstiges'),by:ME.name,byAv:ME.av,byImg:ME.avImg,icon:item.icon||'',img:item.img||''});
+    // Bild/Symbol bewusst NICHT mitkopieren — es liegt bereits im Katalog und
+    // wird beim Anzeigen von dort geholt (itemMedia). Das spart pro gelistetem
+    // Artikel eine komplette Bildkopie und hält die Datenmenge klein.
+    S.list.push({id,n:nm,u:item.u||item.unit,qty:item.q||item.defaultQty||1,cat,subcat:item.sc||(cat==='d'?'drogerie':'sonstiges'),by:ME.name,byAv:ME.av,byImg:ME.avImg});
     queueAddNotification(nm, true); // Artikel hinzugefügt → in Sammlung
   }
   renderAll(); push();
@@ -1576,7 +1849,7 @@ function doAdd(cat){
   const item={id,n:nm,u,q:qty,sc,icon:addItemIcon,img:addItemImg};
   S.cat[cat].push(item);
   srt(S.cat[cat]);
-  S.list.push({id,n:nm,u,qty,cat,subcat:sc,by:ME.name,byAv:ME.av,byImg:ME.avImg,icon:addItemIcon,img:addItemImg});
+  S.list.push({id,n:nm,u,qty,cat,subcat:sc,by:ME.name,byAv:ME.av,byImg:ME.avImg});
   closePlanAdd(cat); renderAll(); push();
   queueAddNotification(nm, true);
 }
