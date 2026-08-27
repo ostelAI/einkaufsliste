@@ -246,6 +246,26 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   color:var(--txt);font-weight:700;font-size:14.5px;cursor:pointer;margin-top:14px;font-family:inherit;transition:.18s;}
 .reset-btn:active{background:var(--surf2);}
 .nores{color:var(--muted);font-size:13px;padding:8px 12px;}
+/* Problem-melden-Knopf im Kopfbereich */
+#bug-btn{width:30px;height:30px;flex-shrink:0;border-radius:50%;border:1px solid var(--brd);
+  background:var(--surf2);cursor:pointer;font-size:14px;line-height:1;padding:0;
+  display:flex;align-items:center;justify-content:center;transition:transform .12s,background .18s;}
+#bug-btn:active{transform:scale(.9);background:var(--surf);}
+#bug-btn.hat-neue{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,77,110,.22);}
+.bug-feld{width:100%;min-height:110px;padding:13px 15px;border-radius:16px;border:1px solid var(--brd2);
+  background:var(--surf2);color:var(--txt);font-size:15px;font-family:inherit;outline:none;resize:vertical;
+  line-height:1.45;}
+.bug-feld:focus{border-color:var(--bbrd);}
+.bug-info{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:10px;}
+.bug-eintrag{background:var(--surf2);border:1px solid var(--brd);border-radius:14px;padding:11px 13px;
+  margin-bottom:8px;cursor:pointer;transition:background .15s;}
+.bug-eintrag:active{background:var(--surf);}
+.bug-eintrag .be-kopf{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);font-weight:700;}
+.bug-eintrag .be-text{font-size:13.5px;color:var(--txt);margin-top:4px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.bug-log{background:var(--surf2);border:1px solid var(--brd);border-radius:14px;padding:12px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.55;color:var(--sub);
+  white-space:pre-wrap;word-break:break-word;max-height:34vh;overflow-y:auto;}
 /* Dialog */
 #ovl{display:none;position:fixed;inset:0;background:rgba(6,10,26,.72);z-index:100;align-items:center;
   justify-content:center;padding:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
@@ -289,8 +309,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <span id="app-title">Einkaufsliste</span>
       <span id="whatsnew-badge" class="whatsnew-badge" onclick="openChangelog()">🆕 What's New</span>
       <span id="ver">v3.4.2</span>
-      <div id="sync-dot"></div>
-      <span id="sync-lbl">…</span>
+      <button id="bug-btn" onclick="openBugDialog()" title="Problem melden">🐛</button>
+      <div id="sync-dot" onclick="erklaereSync()" style="cursor:pointer" title="Speicher-Status"></div>
+      <span id="sync-lbl" onclick="erklaereSync()" style="cursor:pointer">…</span>
     </div>
     <div class="tabs">
       <button class="tab on" data-tab="planen" onclick="switchTab('planen')">📋 Planen<span id="b-plan" class="bdg" style="display:none"></span></button>
@@ -384,7 +405,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="4.0.0";
+const VER="4.2.0";
 
 const DEFAULTS={
   s:[
@@ -412,7 +433,7 @@ const DEFAULTS={
 };
 
 // STATE
-let S={cat:{s:[],d:[]},list:[],checked:{},verlauf:[],userCats:{s:[],d:[]},updatedAt:0,updatedBy:""};
+let S={cat:{s:[],d:[]},list:[],checked:{},verlauf:[],userCats:{s:[],d:[]},bugReports:[],updatedAt:0,updatedBy:""};
 let ME={name:"",av:"👨",avImg:""}; // avImg = base64 photo
 let selAv="👨", selAvImg="";
 let srchQ="", delTarget=null, notifOk=false;
@@ -555,6 +576,7 @@ function migrate(d){
 
   // Eigene Kategorien: Feld ergänzen für ältere Daten, die es noch nicht kennen
   if(!d.userCats) d.userCats={s:[],d:[]};
+  if(!Array.isArray(d.bugReports)) d.bugReports=[];
 
   // Unterkategorien ergänzen falls noch nicht vorhanden (für ältere Daten)
   if(d.cat){
@@ -817,6 +839,7 @@ function applyRemote(d){
   S=d;
   srt(S.cat.s); srt(S.cat.d);
   renderAll();
+  aktualisiereBugKnopf();   // eingegangene Problemberichte am Käfer anzeigen
 }
 
 function startSync(){
@@ -851,7 +874,16 @@ async function startApp(){
   const name=document.getElementById('name-inp').value.trim();
   if(!name)return;
   ME={name,av:selAv,avImg:selAvImg};
-  localStorage.setItem('einkauf_me',JSON.stringify(ME));
+  // Abgesichert: Ist der Gerätespeicher voll, warf dies früher einen Fehler und
+  // die Anmeldung brach ab — man kam gar nicht mehr in die App hinein.
+  try{
+    localStorage.setItem('einkauf_me',JSON.stringify(ME));
+  }catch(e){
+    console.warn('Anmeldung konnte nicht gespeichert werden:', e);
+    try{ // zweiter Versuch ohne Foto — der Name ist das Wichtige
+      localStorage.setItem('einkauf_me',JSON.stringify({name:ME.name,av:ME.av,avImg:''}));
+    }catch{}
+  }
 
   document.getElementById('setup').style.display='none';
   document.getElementById('app').style.display='block';
@@ -902,39 +934,271 @@ async function startApp(){
 
   document.getElementById('ver').textContent = 'v'+VER;
   checkVersionBadge();
+  aktualisiereBugKnopf();
+  // Im Hintergrund schauen, ob inzwischen eine neuere Fassung veröffentlicht
+  // wurde — hängengebliebene Geräte laden sich dann einmal selbst neu.
+  pruefeNeuereVersion();
 }
 
-// Sendet einmalig pro Version eine Push-Nachricht an die Familie, sobald jemand
-// die neue Version zum ersten Mal lädt. lastNotifiedVersion wird geteilt (Supabase),
-// damit nicht jedes Familienmitglied einzeln eine Nachricht auslöst.
+// Erklärt den Punkt oben, damit er nicht als Warnung missverstanden wird.
+function erklaereSync(){
+  const rot = document.getElementById('sync-lbl').textContent.includes('nicht gespeichert');
+  const wann = S.updatedAt
+    ? new Date(S.updatedAt).toLocaleString('de',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  document.getElementById('dlg-ttl').textContent = 'Speicher-Status';
+  document.getElementById('dlg-msg').innerHTML = `
+    <div style="font-size:14.5px;color:var(--txt);line-height:1.5;margin-bottom:14px">${
+      rot ? 'Das Speichern hat gerade nicht geklappt. Die Liste ist noch nicht bei den anderen angekommen — meist reicht es, kurz zu warten oder die App neu zu öffnen.'
+          : 'Alles gespeichert und mit der Familie abgeglichen. 👍'}</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:14px">Zuletzt gespeichert: <b style="color:var(--txt)">${esc(wann)}</b>${S.updatedBy?' von '+esc(S.updatedBy):''}</div>
+    <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--sub)">
+      <div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-right:8px"></span>Türkis — alles in Ordnung</div>
+      <div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--yellow);margin-right:8px"></span>Gelb — speichert gerade</div>
+      <div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:8px"></span>Rot — nicht gespeichert</div>
+    </div>`;
+  document.getElementById('dlg-btns').innerHTML =
+    `<button class="btn-c" style="width:100%" onclick="closeDlg()">Alles klar</button>`;
+  document.getElementById('ovl').classList.add('on');
+}
+
+// ── Problem melden ───────────────────────────────────────────────────────────
+// Sammelt automatisch den technischen Zustand des Geräts. Das erspart
+// Rückfragen — man sieht direkt Version, Gerät, Berechtigungen und Datenstand.
+function sammleDiagnose(){
+  const ja = b => b ? 'ja' : 'nein';
+  let speicherKB = '—';
+  try{ speicherKB = Math.round((localStorage.getItem(LS_KEY)||'').length/1024)+' KB'; }catch{}
+  return {
+    'Zeitpunkt'        : new Date().toLocaleString('de'),
+    'Gemeldet von'     : ME.name || '—',
+    'App-Version'      : VER,
+    'Adresse'          : location.href,
+    'Als App installiert': ja((window.navigator.standalone===true) || window.matchMedia('(display-mode: standalone)').matches),
+    'Benachrichtigungen': (typeof Notification==='undefined') ? 'nicht verfügbar' : Notification.permission,
+    'Push-Geräte-ID'   : mySubscriptionId || '— (keine)',
+    'OneSignal geladen': ja(!!window.OneSignal),
+    'Online'           : ja(navigator.onLine),
+    'Gerät'            : navigator.userAgent,
+    'Bildschirm'       : `${screen.width}×${screen.height}`,
+    'Sprache'          : navigator.language,
+    'Artikel Supermarkt': (S.cat?.s||[]).length,
+    'Artikel Drogerie' : (S.cat?.d||[]).length,
+    'Auf der Liste'    : (S.list||[]).length,
+    'Verlauf'          : (S.verlauf||[]).length,
+    'Eigene Kategorien': ((S.userCats?.s||[]).length + (S.userCats?.d||[]).length),
+    'Datenmenge'       : Math.round(JSON.stringify(S).length/1024)+' KB',
+    'Lokaler Speicher' : speicherKB,
+    'Zuletzt gespeichert': S.updatedAt ? new Date(S.updatedAt).toLocaleString('de') : '—',
+    'Zuletzt von'      : S.updatedBy || '—',
+    'Gemeldete Version': S.lastNotifiedVersion || '—'
+  };
+}
+
+function diagnoseAlsText(bericht){
+  const zeilen = Object.entries(bericht.diag||{}).map(([k,v])=>`${k}: ${v}`);
+  return `PROBLEMBERICHT — Einkaufsliste\n`
+       + `${'='.repeat(40)}\n\n`
+       + `Beschreibung:\n${bericht.text||'(keine)'}\n\n`
+       + `${'='.repeat(40)}\nTechnische Angaben\n${'='.repeat(40)}\n`
+       + zeilen.join('\n') + '\n';
+}
+
+function openBugDialog(){
+  const berichte = (S.bugReports||[]).slice().reverse();
+  const liste = berichte.length ? `
+    <div style="margin-top:20px;border-top:1px solid var(--brd);padding-top:16px">
+      <div style="font-size:12px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Gemeldete Probleme (${berichte.length})</div>
+      <div style="max-height:26vh;overflow-y:auto">
+        ${berichte.map(b=>`
+          <div class="bug-eintrag" onclick="zeigeBugReport('${b.id}')">
+            <div class="be-kopf">🐛 ${esc(b.diag?.['Gemeldet von']||'?')} · ${esc((b.diag?.['Zeitpunkt']||'').split(',')[0])} · v${esc(b.diag?.['App-Version']||'?')}</div>
+            <div class="be-text">${esc(b.text||'(keine Beschreibung)')}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('dlg-ttl').textContent = '🐛 Problem melden';
+  document.getElementById('dlg-msg').innerHTML = `
+    <div style="font-size:13.5px;color:var(--sub);line-height:1.5;margin-bottom:12px">
+      Was hat nicht funktioniert? Schreib es einfach in eigenen Worten — Papa bekommt den Bericht.
+    </div>
+    <textarea class="bug-feld" id="bug-text" placeholder="z.B. Ich musste mich plötzlich neu anmelden…"></textarea>
+    <div class="bug-info">Automatisch mitgeschickt: Version, Gerät, Benachrichtigungs-Status und Datenstand. Keine Passwörter, keine Fotos.</div>
+    ${liste}`;
+  document.getElementById('dlg-btns').innerHTML = `
+    <button class="btn-c" onclick="closeDlg()">Abbrechen</button>
+    <button class="btn-ok b" onclick="sendeBugReport()">Senden</button>`;
+  document.getElementById('ovl').classList.add('on');
+  setTimeout(()=>document.getElementById('bug-text')?.focus(), 120);
+}
+
+async function sendeBugReport(){
+  const feld = document.getElementById('bug-text');
+  const text = feld ? feld.value.trim() : '';
+  if(!text){ feld?.focus(); return; }
+
+  const bericht = { id:'bug_'+Date.now(), text, diag: sammleDiagnose() };
+  S.bugReports = S.bugReports || [];
+  S.bugReports.push(bericht);
+  if(S.bugReports.length > 30) S.bugReports = S.bugReports.slice(-30);  // nicht endlos wachsen
+
+  closeDlg();
+  const gespeichert = await push();          // landet bei allen, also auch bei Papa
+  aktualisiereBugKnopf();
+
+  await warteAufPushId();
+  await notify('🐛 Problembericht von ' + (ME.name||'jemandem'), text.slice(0,140));
+
+  zeigeBugReport(bericht.id, gespeichert===false
+    ? 'Der Bericht ist noch nicht übertragen — er wird beim nächsten Speichern automatisch nachgereicht. Du kannst ihn unten auch direkt weiterleiten.'
+    : 'Der Bericht wurde übertragen — Papa hat ihn bekommen.');
+}
+
+function zeigeBugReport(id, hinweis){
+  const b = (S.bugReports||[]).find(x=>x.id===id);
+  if(!b) return;
+  document.getElementById('dlg-ttl').textContent = hinweis ? '✅ Danke!' : '🐛 Problembericht';
+  document.getElementById('dlg-msg').innerHTML =
+    (hinweis ? `<div style="font-size:14px;color:var(--txt);line-height:1.5;margin-bottom:14px">${esc(hinweis)}</div>` : '')
+    + `<div class="bug-log">${esc(diagnoseAlsText(b))}</div>`;
+  document.getElementById('dlg-btns').innerHTML = `
+    <button class="btn-c" onclick="openBugDialog()">Zurück</button>
+    <button class="btn-ok b" onclick="teileBugReport('${b.id}')">Weiterleiten</button>`;
+  document.getElementById('ovl').classList.add('on');
+}
+
+// Bericht als Datei bzw. über das Teilen-Menü weitergeben (WhatsApp, Mail …).
+async function teileBugReport(id){
+  const b = (S.bugReports||[]).find(x=>x.id===id);
+  if(!b) return;
+  const inhalt = diagnoseAlsText(b);
+  const name = 'einkaufsliste-problem-' + new Date(parseInt(id.replace('bug_',''),10)||Date.now())
+    .toISOString().slice(0,16).replace(/[:T]/g,'-') + '.txt';
+  try{
+    const datei = new File([inhalt], name, {type:'text/plain'});
+    if(navigator.canShare && navigator.canShare({files:[datei]})){
+      await navigator.share({files:[datei], title:'Problembericht Einkaufsliste'});
+      return;
+    }
+    if(navigator.share){ await navigator.share({title:'Problembericht Einkaufsliste', text:inhalt}); return; }
+  }catch(e){ if(e && e.name==='AbortError') return; console.warn('Teilen:', e); }
+  // Ohne Teilen-Menü: als Datei herunterladen
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([inhalt],{type:'text/plain'}));
+    a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  }catch(e){ console.warn('Download:', e); }
+}
+
+// Kleiner roter Ring am Käfer, solange ungelesene Berichte da sind.
+function aktualisiereBugKnopf(){
+  const btn = document.getElementById('bug-btn');
+  if(!btn) return;
+  btn.classList.toggle('hat-neue', (S.bugReports||[]).length > 0);
+}
+
+// Vergleicht Versionen wie "4.0.0" der Reihe nach zahlenmäßig.
+// Gibt true, wenn a echt neuer ist als b.
+function istNeuer(a, b){
+  const za = String(a??'').split('.').map(n=>parseInt(n,10)||0);
+  const zb = String(b??'').split('.').map(n=>parseInt(n,10)||0);
+  for(let i=0; i<Math.max(za.length, zb.length); i++){
+    const x = za[i]||0, y = zb[i]||0;
+    if(x > y) return true;
+    if(x < y) return false;
+  }
+  return false;
+}
+
+// Sendet einmalig pro Version eine Push-Nachricht an die Familie.
+//
+// WICHTIG: Hier wurde früher nur auf "ungleich" geprüft. Läuft auf einem Gerät
+// noch eine ältere Fassung aus dem Zwischenspeicher, setzte diese den geteilten
+// Merker zurück — das nächste Gerät meldete wieder die neuere Version, dann
+// wieder die ältere, endlos. Genau daher kamen die wechselnden Nachrichten
+// ("4.0.0", dann "3.5.2", dann wieder "4.0.0"). Jetzt wird nur gemeldet, wenn
+// die eigene Version wirklich NEUER ist — ältere Geräte lösen nichts mehr aus.
 async function checkAndNotifyNewVersion(){
-  if(S.lastNotifiedVersion === VER) return;
+  if(!istNeuer(VER, S.lastNotifiedVersion)) return;
   S.lastNotifiedVersion = VER;
   await push();
+  // Erst senden, wenn die eigene Geräte-ID bekannt ist — sonst kann der
+  // Absender nicht ausgenommen werden und bekommt seine eigene Meldung.
+  await warteAufPushId();
   await notify('🆕 Update verfügbar', `Die Einkaufsliste wurde auf Version ${VER} aktualisiert.`);
+}
+
+// Wartet kurz, bis OneSignal die eigene Geräte-ID geliefert hat. Ohne
+// Berechtigung gibt es keine ID — dann sofort weiter, statt sinnlos zu warten.
+async function warteAufPushId(maxMs=6000){
+  if(typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
+  const start = Date.now();
+  while(!mySubscriptionId && Date.now()-start < maxMs){
+    mySubscriptionId = window.OneSignal?.User?.PushSubscription?.id || null;
+    if(mySubscriptionId) break;
+    await new Promise(r=>setTimeout(r,300));
+  }
+  return mySubscriptionId;
+}
+
+// Holt die tatsächlich veröffentlichte Fassung und lädt einmalig neu, falls das
+// Gerät noch eine alte Version aus dem Zwischenspeicher anzeigt. Damit
+// verschwinden hängengebliebene Geräte von selbst — die eigentliche Quelle der
+// wechselnden Update-Meldungen.
+async function pruefeNeuereVersion(){
+  try{
+    const r = await fetch(location.pathname + '?frisch=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const txt = await r.text();
+    const m = txt.match(/const VER="([^"]+)"/);
+    if(!m || !istNeuer(m[1], VER)) return;
+    if(sessionStorage.getItem('neugeladen_fuer') === m[1]) return;  // nur einmal
+    sessionStorage.setItem('neugeladen_fuer', m[1]);
+    console.info('Neuere Fassung gefunden ('+m[1]+') — lade neu.');
+    location.reload();
+  }catch(e){ console.warn('Versionsprüfung:', e); }
 }
 
 // Check if already set up
 window.addEventListener('DOMContentLoaded',()=>{
   const saved=localStorage.getItem('einkauf_me');
   if(saved){
+    // Der Start stand früher INNERHALB dieses Absicherungsblocks, und der Block
+    // verschluckte jeden Fehler stillschweigend. Ging beim Vorbelegen des
+    // Avatars irgendetwas schief, wurde startApp() nie erreicht — der
+    // Anmeldebildschirm blieb stehen, obwohl die Anmeldung gespeichert war.
+    // Deshalb jetzt getrennt: erst die Anmeldung lesen (kritisch), dann die
+    // reine Optik (unkritisch), und der Start steht außerhalb.
+    let angemeldet = false;
     try{
-      ME=JSON.parse(saved);
+      ME = JSON.parse(saved);
+      angemeldet = !!(ME && ME.name);
+    }catch(e){
+      console.warn('Gespeicherte Anmeldung unlesbar:', e);
+    }
+
+    if(angemeldet){
       selAv=ME.av; selAvImg=ME.avImg||'';
-      document.getElementById('name-inp').value=ME.name;
-      // Pre-select avatar
-      if(ME.avImg){
-        const cam=document.querySelector('.av-upload');
-        cam.innerHTML=`<img src="${ME.avImg}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
-        document.querySelectorAll('.av-opt').forEach(e=>e.classList.remove('selected'));
-        cam.classList.add('selected');
-      } else {
-        document.querySelectorAll('.av-opt').forEach(e=>{
-          e.classList.toggle('selected',e.dataset.av===ME.av);
-        });
-      }
+      try{
+        document.getElementById('name-inp').value=ME.name;
+        if(ME.avImg){
+          const cam=document.querySelector('.av-upload');
+          if(cam){
+            cam.innerHTML=`<img src="${ME.avImg}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+            document.querySelectorAll('.av-opt').forEach(e=>e.classList.remove('selected'));
+            cam.classList.add('selected');
+          }
+        } else {
+          document.querySelectorAll('.av-opt').forEach(e=>{
+            e.classList.toggle('selected',e.dataset.av===ME.av);
+          });
+        }
+      }catch(e){ console.warn('Avatar-Vorauswahl fehlgeschlagen (unkritisch):', e); }
+
       startApp();
-    }catch{}
+    }
   }
   document.getElementById('name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')startApp();});
 });
@@ -1017,6 +1281,15 @@ function togglePlanGroup(key){
 // Zeilen, die mit "#" beginnen, werden als Begrüßung/Abschluss hervorgehoben
 // dargestellt (ohne Haken davor) — siehe openChangelog().
 const CHANGELOG = {
+  "4.2.0": [
+    "#Kleines Update — ein paar Sachen repariert 🔧",
+    "🐛 Neu: der kleine Käfer oben. Klemmt irgendwas? Draufdrücken, kurz hinschreiben was los war, senden. Papa bekommt es sofort.",
+    "Die nervigen „Update verfügbar\"-Nachrichten kamen immer wieder, teils mit alten Versionsnummern. Damit ist Schluss — es kommt nur noch eine, wenn es wirklich etwas Neues gibt.",
+    "Manchmal musste man sich neu anmelden, obwohl man längst angemeldet war. Das passiert nicht mehr.",
+    "Bei manchen hing noch eine alte Fassung der App fest. Die holt sich das Update jetzt von allein.",
+    "Der kleine Punkt oben rechts zeigt, ob alles gespeichert ist. Einfach antippen — dann erklärt er sich selbst.",
+    "#Fragen? Einfach Papa Bescheid geben. 😊",
+  ],
   "4.0.0": [
     "#Willkommen in der neuen Einkaufsliste! 🎉",
     "Die App sieht komplett neu aus: klare Farben, größere Schrift und deutlich mehr Übersicht.",
