@@ -405,7 +405,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="4.2.0";
+const VER="4.3.0";
 
 const DEFAULTS={
   s:[
@@ -433,7 +433,7 @@ const DEFAULTS={
 };
 
 // STATE
-let S={cat:{s:[],d:[]},list:[],checked:{},verlauf:[],userCats:{s:[],d:[]},bugReports:[],updatedAt:0,updatedBy:""};
+let S={cat:{s:[],d:[]},list:[],checked:{},verlauf:[],userCats:{s:[],d:[]},bugReports:[],eventLog:[],updatedAt:0,updatedBy:""};
 let ME={name:"",av:"👨",avImg:""}; // avImg = base64 photo
 let selAv="👨", selAvImg="";
 let srchQ="", delTarget=null, notifOk=false;
@@ -577,6 +577,12 @@ function migrate(d){
   // Eigene Kategorien: Feld ergänzen für ältere Daten, die es noch nicht kennen
   if(!d.userCats) d.userCats={s:[],d:[]};
   if(!Array.isArray(d.bugReports)) d.bugReports=[];
+  if(!Array.isArray(d.eventLog)) d.eventLog=[];
+  // Eigener Merker ab v4.3.0 — `lastNotifiedVersion` wird bewusst nicht mehr
+  // angefasst (siehe checkAndNotifyNewVersion). Beim ersten Mal vom alten Wert
+  // übernehmen, damit nicht erneut eine Meldung für eine bereits gemeldete
+  // Version herausgeht.
+  if(d.verMeldung === undefined) d.verMeldung = d.lastNotifiedVersion || '';
 
   // Unterkategorien ergänzen falls noch nicht vorhanden (für ältere Daten)
   if(d.cat){
@@ -827,6 +833,8 @@ async function push(){
   if(!ok){
     await new Promise(r=>setTimeout(r,1500));
     ok = await sbSave(S);
+    // Nur den endgültigen Fehlschlag festhalten, nicht jeden Funkloch-Aussetzer.
+    if(!ok) protokolliere('Speichern fehlgeschlagen', '');
   }
   setSyncing(false); setSyncLbl(!ok);
   try{const bc=new BroadcastChannel(LS_KEY);bc.postMessage(S);bc.close();}catch{}
@@ -929,10 +937,17 @@ async function startApp(){
   // ins Leere laufen, solange das SDK noch lädt.
 
   if(remote&&remote.cat){
+    // Festhalten, wer mit welcher Version unterwegs ist — daran erkennt man
+    // sofort, welches Gerät noch eine alte Fassung benutzt.
+    protokolliere('App geöffnet', '');
     await checkAndNotifyNewVersion();
   }
 
-  document.getElementById('ver').textContent = 'v'+VER;
+  const verEl = document.getElementById('ver');
+  verEl.textContent = 'v'+VER;
+  verEl.onclick = zeigeProtokoll;          // Versionsnummer antippen = Protokoll
+  verEl.style.cursor = 'pointer';
+  verEl.title = 'Protokoll anzeigen';
   checkVersionBadge();
   aktualisiereBugKnopf();
   // Im Hintergrund schauen, ob inzwischen eine neuere Fassung veröffentlicht
@@ -991,17 +1006,24 @@ function sammleDiagnose(){
     'Lokaler Speicher' : speicherKB,
     'Zuletzt gespeichert': S.updatedAt ? new Date(S.updatedAt).toLocaleString('de') : '—',
     'Zuletzt von'      : S.updatedBy || '—',
-    'Gemeldete Version': S.lastNotifiedVersion || '—'
+    'Gemeldete Version': S.verMeldung || '—',
+    'Alter Merker'     : S.lastNotifiedVersion || '—',
+    'Protokoll-Einträge': (S.eventLog||[]).length
   };
 }
 
 function diagnoseAlsText(bericht){
   const zeilen = Object.entries(bericht.diag||{}).map(([k,v])=>`${k}: ${v}`);
+  // Das Protokoll wird direkt beim Melden eingefroren (bericht.log), damit es
+  // später nicht durch neuere Ereignisse verfälscht weitergeleitet wird.
+  const log = bericht.log || protokollAlsText(25);
   return `PROBLEMBERICHT — Einkaufsliste\n`
        + `${'='.repeat(40)}\n\n`
        + `Beschreibung:\n${bericht.text||'(keine)'}\n\n`
        + `${'='.repeat(40)}\nTechnische Angaben\n${'='.repeat(40)}\n`
-       + zeilen.join('\n') + '\n';
+       + zeilen.join('\n')
+       + `\n\n${'='.repeat(40)}\nProtokoll (neueste zuerst)\n${'='.repeat(40)}\n`
+       + log + '\n';
 }
 
 function openBugDialog(){
@@ -1038,7 +1060,8 @@ async function sendeBugReport(){
   const text = feld ? feld.value.trim() : '';
   if(!text){ feld?.focus(); return; }
 
-  const bericht = { id:'bug_'+Date.now(), text, diag: sammleDiagnose() };
+  protokolliere('Problem gemeldet', text.slice(0,60));
+  const bericht = { id:'bug_'+Date.now(), text, diag: sammleDiagnose(), log: protokollAlsText(25) };
   S.bugReports = S.bugReports || [];
   S.bugReports.push(bericht);
   if(S.bugReports.length > 30) S.bugReports = S.bugReports.slice(-30);  // nicht endlos wachsen
@@ -1099,6 +1122,86 @@ function aktualisiereBugKnopf(){
   btn.classList.toggle('hat-neue', (S.bugReports||[]).length > 0);
 }
 
+// ── Protokoll ────────────────────────────────────────────────────────────────
+// Hält fest, welches Gerät wann was ausgelöst hat. Wird mitsynchronisiert, ist
+// also auf allen Geräten sichtbar — nur so lässt sich nachvollziehen, welches
+// Familienmitglied z.B. noch eine alte Fassung benutzt und dadurch Meldungen
+// auslöst. Bewusst sehr knapp gehalten, damit die Datenmenge nicht wächst.
+function protokolliere(art, detail){
+  try{
+    S.eventLog = Array.isArray(S.eventLog) ? S.eventLog : [];
+    S.eventLog.push({
+      t: Date.now(),
+      w: (ME && ME.name) || '?',   // wer
+      v: VER,                       // welche Version lief dabei
+      a: art,
+      d: String(detail||'').slice(0,90)
+    });
+    if(S.eventLog.length > 80) S.eventLog = S.eventLog.slice(-80);
+  }catch(e){ console.warn('Protokoll:', e); }
+}
+
+function protokollAlsText(max){
+  const e = (S.eventLog||[]).slice(-(max||80)).reverse();
+  if(!e.length) return '(noch nichts aufgezeichnet)';
+  return e.map(x=>{
+    const d = new Date(x.t);
+    const z = d.toLocaleString('de',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `${z}  ${x.w} (v${x.v})  ${x.a}${x.d?' — '+x.d:''}`;
+  }).join('\n');
+}
+
+// Über die Versionsnummer im Kopf erreichbar.
+function zeigeProtokoll(){
+  const eintraege = (S.eventLog||[]).length;
+  // Welche Versionen sind gerade im Umlauf? Das ist die eigentlich
+  // interessante Frage bei wiederkehrenden Update-Meldungen.
+  const proPerson = {};
+  (S.eventLog||[]).forEach(x=>{ if(x.a==='App geöffnet') proPerson[x.w] = x.v; });
+  const uebersicht = Object.keys(proPerson).length
+    ? Object.entries(proPerson).map(([w,v])=>
+        `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0">
+           <span style="color:var(--txt);font-weight:600">${esc(w)}</span>
+           <span style="color:${v===VER?'var(--green)':'var(--red)'};font-weight:700">v${esc(v)}</span>
+         </div>`).join('')
+    : '<div style="font-size:13px;color:var(--muted)">noch keine Daten</div>';
+
+  document.getElementById('dlg-ttl').textContent = '📋 Protokoll';
+  document.getElementById('dlg-msg').innerHTML = `
+    <div style="font-size:13px;color:var(--sub);line-height:1.5;margin-bottom:14px">
+      Zuletzt benutzte Version je Person. Rot bedeutet: veraltete Fassung — dieses Gerät
+      kann wiederkehrende Update-Meldungen auslösen. Abhilfe: App dort ganz schließen
+      (hochwischen) und neu öffnen.
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--brd);border-radius:14px;padding:11px 14px;margin-bottom:16px">
+      ${uebersicht}
+    </div>
+    <div style="font-size:12px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Verlauf (${eintraege})</div>
+    <div class="bug-log">${esc(protokollAlsText(40))}</div>`;
+  document.getElementById('dlg-btns').innerHTML = `
+    <button class="btn-c" onclick="closeDlg()">Schließen</button>
+    <button class="btn-ok b" onclick="teileProtokoll()">Weiterleiten</button>`;
+  document.getElementById('ovl').classList.add('on');
+}
+
+async function teileProtokoll(){
+  const inhalt = 'PROTOKOLL — Einkaufsliste\n' + '='.repeat(40) + '\n\n' + protokollAlsText(80) + '\n';
+  const name = 'einkaufsliste-protokoll-' + new Date().toISOString().slice(0,16).replace(/[:T]/g,'-') + '.txt';
+  try{
+    const datei = new File([inhalt], name, {type:'text/plain'});
+    if(navigator.canShare && navigator.canShare({files:[datei]})){
+      await navigator.share({files:[datei], title:'Protokoll Einkaufsliste'}); return;
+    }
+    if(navigator.share){ await navigator.share({title:'Protokoll Einkaufsliste', text:inhalt}); return; }
+  }catch(e){ if(e && e.name==='AbortError') return; console.warn('Teilen:', e); }
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([inhalt],{type:'text/plain'}));
+    a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  }catch(e){ console.warn('Download:', e); }
+}
+
 // Vergleicht Versionen wie "4.0.0" der Reihe nach zahlenmäßig.
 // Gibt true, wenn a echt neuer ist als b.
 function istNeuer(a, b){
@@ -1114,15 +1217,22 @@ function istNeuer(a, b){
 
 // Sendet einmalig pro Version eine Push-Nachricht an die Familie.
 //
-// WICHTIG: Hier wurde früher nur auf "ungleich" geprüft. Läuft auf einem Gerät
-// noch eine ältere Fassung aus dem Zwischenspeicher, setzte diese den geteilten
-// Merker zurück — das nächste Gerät meldete wieder die neuere Version, dann
-// wieder die ältere, endlos. Genau daher kamen die wechselnden Nachrichten
-// ("4.0.0", dann "3.5.2", dann wieder "4.0.0"). Jetzt wird nur gemeldet, wenn
-// die eigene Version wirklich NEUER ist — ältere Geräte lösen nichts mehr aus.
+// Vorgeschichte: Ursprünglich wurde nur auf "ungleich" geprüft, wodurch ein
+// Gerät mit älterer Fassung den geteilten Merker zurücksetzte und eine
+// Endlosschleife wechselnder Meldungen entstand. v4.2.0 hat das für neue
+// Geräte behoben (istNeuer) — aber die ALTEN Geräte tragen weiterhin ihren
+// eigenen fehlerhaften Code und setzen `lastNotifiedVersion` weiter zurück.
+// Diesen Code können wir nicht mehr ändern, er läuft ja schon.
+//
+// Lösung: Wir fassen `lastNotifiedVersion` gar nicht mehr an und benutzen
+// einen eigenen Merker. Dadurch bleibt der alte Wert stehen, sobald ein altes
+// Gerät ihn einmal auf seine eigene Version gesetzt hat — beim nächsten Start
+// findet es dort exakt seine Version vor und schweigt endgültig.
 async function checkAndNotifyNewVersion(){
-  if(!istNeuer(VER, S.lastNotifiedVersion)) return;
-  S.lastNotifiedVersion = VER;
+  if(!istNeuer(VER, S.verMeldung)) return;
+  const vorher = S.verMeldung || '—';
+  S.verMeldung = VER;
+  protokolliere('Update gemeldet', `${vorher} → ${VER}`);
   await push();
   // Erst senden, wenn die eigene Geräte-ID bekannt ist — sonst kann der
   // Absender nicht ausgenommen werden und bekommt seine eigene Meldung.
@@ -1281,6 +1391,13 @@ function togglePlanGroup(key){
 // Zeilen, die mit "#" beginnen, werden als Begrüßung/Abschluss hervorgehoben
 // dargestellt (ohne Haken davor) — siehe openChangelog().
 const CHANGELOG = {
+  "4.3.0": [
+    "#Nochmal die Update-Meldungen 🔧",
+    "Die Meldungen kamen weiter, weil auf einem Handy noch eine alte Fassung der App lief. Deren Fehler ließ sich nicht aus der Ferne reparieren — jetzt wird sie aber einfach ignoriert und gibt von allein Ruhe.",
+    "Neu: Tippe oben auf die Versionsnummer. Dort steht, wer zuletzt mit welcher Version unterwegs war. Rot heißt: veraltet — dieses Handy einmal ganz schließen (hochwischen) und neu öffnen.",
+    "Darunter ein Verlauf, was wann passiert ist. Hilft Papa beim Nachvollziehen, wenn mal wieder etwas seltsam ist.",
+    "#Fragen? Einfach Papa Bescheid geben. 😊",
+  ],
   "4.2.0": [
     "#Kleines Update — ein paar Sachen repariert 🔧",
     "🐛 Neu: der kleine Käfer oben. Klemmt irgendwas? Draufdrücken, kurz hinschreiben was los war, senden. Papa bekommt es sofort.",
