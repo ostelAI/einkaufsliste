@@ -58,10 +58,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 #app{display:none;max-width:480px;margin:0 auto;position:relative;z-index:1;}
 #hdr{background:rgba(15,22,48,.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   position:sticky;top:0;z-index:50;padding:14px 16px 14px;}
-.title-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.title-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .user-av{width:38px;height:38px;border-radius:50%;background:var(--surf);border:1px solid var(--brd2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;overflow:hidden;}
 .user-av img{width:100%;height:100%;object-fit:cover;}
-#app-title{font-size:20px;font-weight:800;flex:1;letter-spacing:-0.03em;}
+#app-title{font-size:20px;font-weight:800;flex:1 1 auto;min-width:0;letter-spacing:-0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #ver{font-size:9.5px;color:var(--muted);background:var(--surf);border:1px solid var(--brd);border-radius:999px;padding:3px 8px;font-weight:700;}
 #sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;transition:background 0.3s;}
 #sync-dot.spin{background:var(--yellow);box-shadow:0 0 8px var(--yellow);}
@@ -71,7 +71,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(1.3);}}
 @keyframes badgeGlow{0%,100%{box-shadow:0 0 4px #ff5a5a99;}50%{box-shadow:0 0 12px var(--red),0 0 4px var(--red);}}
 .whatsnew-badge{display:none;align-items:center;gap:3px;background:linear-gradient(135deg,var(--red),#ff8a8a);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;flex-shrink:0;animation:pulse 1.4s infinite,badgeGlow 1.4s infinite;}
-#sync-lbl{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+#sync-lbl{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* Status rutscht auf schmalen Handys geschlossen in die zweite Zeile, statt
+   die Knöpfe (vor allem 💾) aus dem Bild zu schieben. */
+#sync-row{display:flex;align-items:center;gap:7px;margin-left:auto;cursor:pointer;flex-shrink:0;}
 /* Umschalter: dunkle Blase, die auf der hellen Fläche schwebt */
 .tabs{display:flex;gap:5px;background:var(--dark);border:1px solid var(--brd);border-radius:999px;padding:5px;
   box-shadow:0 6px 20px rgba(0,0,0,.32);}
@@ -252,6 +255,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   display:flex;align-items:center;justify-content:center;transition:transform .12s,background .18s;}
 #bug-btn:active{transform:scale(.9);background:var(--surf);}
 #bug-btn.hat-neue{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,77,110,.22);}
+/* Standardmäßig versteckt — nur Papa bekommt ihn zu sehen, siehe
+   aktualisiereAdminKnopf(). Sonst könnte jeder die Liste überschreiben. */
+#save-btn{width:30px;height:30px;flex-shrink:0;border-radius:50%;border:1px solid var(--brd);
+  background:var(--surf2);cursor:pointer;font-size:13px;line-height:1;padding:0;
+  display:none;align-items:center;justify-content:center;transition:transform .12s,background .18s;}
+#save-btn:active{transform:scale(.9);background:var(--surf);}
 .bug-feld{width:100%;min-height:110px;padding:13px 15px;border-radius:16px;border:1px solid var(--brd2);
   background:var(--surf2);color:var(--txt);font-size:15px;font-family:inherit;outline:none;resize:vertical;
   line-height:1.45;}
@@ -309,13 +318,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <span id="app-title">Einkaufsliste</span>
       <span id="whatsnew-badge" class="whatsnew-badge" onclick="openChangelog()">🆕 What's New</span>
       <span id="ver">v3.4.2</span>
+      <button id="save-btn" onclick="openSicherungDialog()" title="Daten sichern">💾</button>
       <button id="bug-btn" onclick="openBugDialog()" title="Problem melden">🐛</button>
-      <div id="sync-dot" onclick="erklaereSync()" style="cursor:pointer" title="Speicher-Status"></div>
-      <span id="sync-lbl" onclick="erklaereSync()" style="cursor:pointer">…</span>
+      <div id="sync-row" onclick="erklaereSync()" title="Speicher-Status">
+        <div id="sync-dot"></div><span id="sync-lbl">…</span>
+      </div>
     </div>
     <div class="tabs">
       <button class="tab on" data-tab="planen" onclick="switchTab('planen')">📋 Planen<span id="b-plan" class="bdg" style="display:none"></span></button>
       <button class="tab" data-tab="einkaufen" onclick="switchTab('einkaufen')">🛒 Einkaufen<span id="b-shop" class="bdg" style="display:none"></span></button>
+    </div>
+    <div id="save-warn" style="display:none;align-items:center;gap:10px;padding:13px 15px;margin-top:12px;font-size:13.5px;color:#fff;background:linear-gradient(135deg,#b3243a,#e5405e);border-radius:18px;box-shadow:0 4px 16px rgba(229,64,94,.35)">
+      <span style="flex:1;line-height:1.4"><b>Nicht gespeichert!</b><br>Deine Änderungen sind noch nicht bei den anderen angekommen.</span>
+      <button onclick="openSicherungDialog()" style="padding:9px 14px;border-radius:999px;border:none;background:rgba(255,255,255,.22);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit">Sichern</button>
     </div>
     <div id="notif-banner" style="display:none;align-items:center;gap:10px;padding:13px 15px;margin-top:12px;font-size:13.5px;color:var(--sub);background:var(--surf);border:1px solid var(--brd);border-radius:18px;box-shadow:var(--sh)">
       <span class="nb-text" style="flex:1;line-height:1.4"></span>
@@ -405,7 +420,7 @@ const SB_URL="https://bmqkwfzvgunymwonyhrn.supabase.co";
 const SB_KEY="sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
 const LS_KEY="einkauf_v3";
 const POLL=8000;
-const VER="4.3.0";
+const VER="4.3.1";
 
 const DEFAULTS={
   s:[
@@ -804,22 +819,42 @@ async function notify(title, body){
 }
 
 // ── Sync ──────────────────────────────────────────────────────────────────────
-function setSyncing(v){document.getElementById('sync-dot').className=v?'spin':'';}
-function setSyncLbl(fehler){
+// Merkt sich dauerhaft, ob ungespeicherte Änderungen vorliegen. Früher wurde der
+// Fehlerzustand als Parameter durchgereicht — und die Prüfschleife rief
+// setSyncLbl() alle 8 Sekunden OHNE Argument auf und löschte die rote Warnung
+// damit sofort wieder, inklusive frischer Uhrzeit. Die App meldete "alles
+// gespeichert", während in Wahrheit nichts ankam. Jetzt entscheidet allein
+// dieser Merker, und nur ein erfolgreiches Speichern setzt ihn zurück.
+let ungespeichert = false;
+
+function setSyncing(v){
+  const dot=document.getElementById('sync-dot');
+  if(!dot) return;
+  dot.className = v ? 'spin' : '';
+}
+
+function setSyncLbl(){
   const dot = document.getElementById('sync-dot');
   const lbl = document.getElementById('sync-lbl');
-  if(fehler){
-    // Sichtbar machen, statt still zu scheitern: sonst glaubt man, der Artikel
-    // sei bei allen angekommen, obwohl ihn niemand sonst je zu sehen bekommt.
+  if(!dot || !lbl) return;
+  if(ungespeichert){
     dot.style.background='var(--red)';
     dot.style.boxShadow='0 0 8px var(--red)';
     lbl.textContent='nicht gespeichert!';
     lbl.style.color='var(--red)';
-    return;
+  } else {
+    dot.style.background=''; dot.style.boxShadow='';
+    lbl.style.color='';
+    lbl.textContent=new Date().toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'});
   }
-  dot.style.background=''; dot.style.boxShadow='';
-  lbl.style.color='';
-  lbl.textContent=new Date().toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'});
+  zeigeSpeicherWarnung();
+}
+
+// Deutlich sichtbarer Hinweis — ein kleiner Punkt wird im Alltag übersehen.
+function zeigeSpeicherWarnung(){
+  const el = document.getElementById('save-warn');
+  if(!el) return;
+  el.style.display = ungespeichert ? 'flex' : 'none';
 }
 
 async function push(){
@@ -827,22 +862,25 @@ async function push(){
   S.updatedAt=Date.now(); S.updatedBy=ME.name;
   lsSave();
   let ok = await sbSave(S);
-  // Kurze Netzaussetzer (Funkloch, WLAN-Wechsel) sind der häufigste Grund für
-  // ein fehlgeschlagenes Speichern. Einmal automatisch nachfassen, bevor
-  // überhaupt eine Warnung erscheint.
   if(!ok){
     await new Promise(r=>setTimeout(r,1500));
     ok = await sbSave(S);
-    // Nur den endgültigen Fehlschlag festhalten, nicht jeden Funkloch-Aussetzer.
-    if(!ok) protokolliere('Speichern fehlgeschlagen', '');
+    // Den Fehlschlag selbst mitsichern — sonst fehlt er im Protokoll, weil
+    // lsSave() oben schon gelaufen ist.
+    if(!ok){ protokolliere('Speichern fehlgeschlagen', ''); lsSave(); }
   }
-  setSyncing(false); setSyncLbl(!ok);
+  ungespeichert = !ok;
+  setSyncing(false); setSyncLbl();
   try{const bc=new BroadcastChannel(LS_KEY);bc.postMessage(S);bc.close();}catch{}
   return ok;
 }
 
 function applyRemote(d){
   if(!d||!d.updatedAt)return;
+  // Solange eigene Änderungen nicht gespeichert sind, NICHTS von außen
+  // übernehmen — sonst überschreibt der fremde Stand die eigene Eingabe und
+  // sie ist endgültig weg, ohne dass es jemand merkt.
+  if(ungespeichert) return;
   if(d.updatedAt<=(S.updatedAt||0))return;
   S=d;
   srt(S.cat.s); srt(S.cat.d);
@@ -852,7 +890,20 @@ function applyRemote(d){
 
 function startSync(){
   try{const bc=new BroadcastChannel(LS_KEY);bc.onmessage=e=>applyRemote(e.data);}catch{}
-  setInterval(async()=>{const d=await sbLoad();applyRemote(d);setSyncLbl();},POLL);
+  setInterval(async()=>{
+    // Liegt noch etwas Ungespeichertes vor, zuerst erneut senden statt laden.
+    // Vorher wurde ein fehlgeschlagener Versuch nie wiederholt — die Änderung
+    // blieb für immer nur auf dem eigenen Gerät.
+    if(ungespeichert){
+      const ok = await sbSave(S);
+      if(ok){ ungespeichert=false; protokolliere('Nachträglich gespeichert',''); }
+      setSyncLbl();
+      return;
+    }
+    const d=await sbLoad();
+    applyRemote(d);
+    setSyncLbl();
+  },POLL);
 }
 
 // ── Catalog helpers ───────────────────────────────────────────────────────────
@@ -912,7 +963,21 @@ async function startApp(){
 
   // Load from Supabase (truth)
   const remote=await sbLoad();
-  if(remote&&remote.cat){
+
+  // ACHTUNG: Früher wurde der Stand aus der Datenbank hier IMMER übernommen.
+  // Konnte ein Gerät seine Änderung nicht speichern (z.B. weil die Datenbank
+  // pausiert war), wurde sie beim nächsten Öffnen vom älteren Stand aus der
+  // Datenbank überschrieben — endgültig weg. Deshalb gewinnt jetzt auch hier
+  // der neuere Zeitstempel, genau wie beim laufenden Abgleich.
+  const lokalerStand = local && local.state && local.state.cat ? local.state : null;
+  const lokalNeuer = !!lokalerStand
+    && (lokalerStand.updatedAt||0) > ((remote && remote.updatedAt) || 0);
+
+  if(lokalNeuer){
+    // Eigener Stand ist neuer — nicht überschreiben, sondern nachreichen.
+    protokolliere('Eigener Stand war neuer', 'wird nachgereicht');
+    await push();
+  } else if(remote&&remote.cat){
     S=remote;
     srt(S.cat.s); srt(S.cat.d);
     renderAll();
@@ -950,6 +1015,7 @@ async function startApp(){
   verEl.title = 'Protokoll anzeigen';
   checkVersionBadge();
   aktualisiereBugKnopf();
+  aktualisiereAdminKnopf();
   // Im Hintergrund schauen, ob inzwischen eine neuere Fassung veröffentlicht
   // wurde — hängengebliebene Geräte laden sich dann einmal selbst neu.
   pruefeNeuereVersion();
@@ -1116,10 +1182,138 @@ async function teileBugReport(id){
 }
 
 // Kleiner roter Ring am Käfer, solange ungelesene Berichte da sind.
+// Der Sicherungs-Knopf kann die Liste aller überschreiben — deshalb sieht ihn nur
+// Papa. Eine echte Anmeldung gibt es in der App bewusst nicht; der Name beim Start
+// reicht hier aus, weil es nur darum geht, versehentliches Drücken zu verhindern.
+const ADMIN = 'papa';
+function istAdmin(){
+  return ((ME && ME.name) || '').trim().toLowerCase() === ADMIN;
+}
+function aktualisiereAdminKnopf(){
+  const b = document.getElementById('save-btn');
+  if(b) b.style.display = istAdmin() ? 'flex' : 'none';
+}
+
 function aktualisiereBugKnopf(){
   const btn = document.getElementById('bug-btn');
   if(!btn) return;
   btn.classList.toggle('hat-neue', (S.bugReports||[]).length > 0);
+}
+
+// ── Daten sichern & zurückholen ──────────────────────────────────────────────
+// Lebensversicherung: Geht die Datenbank verloren (genau das ist im Oktober
+// passiert — das Supabase-Projekt war plötzlich weg), ist der Zwischenspeicher
+// auf den Geräten die EINZIGE verbliebene Kopie. Diese Funktion holt sie heraus,
+// bevor jemand die App neu installiert oder Daten löscht.
+function datenAlsSicherung(){
+  return JSON.stringify({
+    typ: 'einkaufsliste-sicherung',
+    version: VER,
+    erstellt: new Date().toISOString(),
+    von: (ME && ME.name) || '?',
+    daten: S
+  });
+}
+
+async function sichereDaten(){
+  const inhalt = datenAlsSicherung();
+  const name = 'einkaufsliste-sicherung-'
+    + new Date().toISOString().slice(0,16).replace(/[:T]/g,'-') + '.json';
+  const groesse = Math.round(inhalt.length/1024);
+  try{
+    const datei = new File([inhalt], name, {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[datei]})){
+      await navigator.share({files:[datei], title:'Sicherung Einkaufsliste'});
+      protokolliere('Sicherung erstellt', groesse+' KB');
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; console.warn('Teilen:', e); }
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([inhalt],{type:'application/json'}));
+    a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    protokolliere('Sicherung erstellt', groesse+' KB');
+  }catch(e){
+    console.warn('Sicherung:', e);
+    openDlg('Sicherung fehlgeschlagen','Die Datei konnte nicht erstellt werden. Bitte Papa Bescheid geben.',
+      `<button class="btn-c" style="width:100%" onclick="closeDlg()">OK</button>`);
+  }
+}
+
+function openSicherungDialog(){
+  if(!istAdmin()) return;
+  const kb = Math.round(JSON.stringify(S).length/1024);
+  const fotos = ['s','d'].reduce((n,c)=>n+(S.cat?.[c]||[]).filter(i=>i.img).length,0);
+  document.getElementById('dlg-ttl').textContent = '💾 Daten sichern';
+  document.getElementById('dlg-msg').innerHTML = `
+    <div style="font-size:14px;color:var(--txt);line-height:1.5;margin-bottom:14px">
+      Speichert die komplette Liste als Datei auf dein Handy. Hebe sie gut auf —
+      damit lässt sich alles wiederherstellen, falls etwas verloren geht.
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--sub);line-height:1.7">
+      Supermarkt: <b style="color:var(--txt)">${(S.cat?.s||[]).length}</b> Artikel<br>
+      Drogerie: <b style="color:var(--txt)">${(S.cat?.d||[]).length}</b> Artikel<br>
+      Auf der Liste: <b style="color:var(--txt)">${(S.list||[]).length}</b><br>
+      Verlauf: <b style="color:var(--txt)">${(S.verlauf||[]).length}</b> Einträge<br>
+      Fotos: <b style="color:var(--txt)">${fotos}</b> · Größe: <b style="color:var(--txt)">${kb} KB</b>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5">
+      Zum Zurückholen einer Sicherung: unten „Datei wählen".
+    </div>
+    <input type="file" id="restore-file" accept="application/json,.json" style="display:none" onchange="holeSicherungZurueck(this)"/>`;
+  document.getElementById('dlg-btns').innerHTML = `
+    <button class="btn-c" onclick="document.getElementById('restore-file').click()">Datei wählen</button>
+    <button class="btn-ok b" onclick="sichereDaten()">Sichern</button>`;
+  document.getElementById('ovl').classList.add('on');
+}
+
+function holeSicherungZurueck(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const leser = new FileReader();
+  leser.onload = () => {
+    let sicherung;
+    try{ sicherung = JSON.parse(leser.result); }
+    catch{ return meldeWiederherstellung('Die Datei konnte nicht gelesen werden.'); }
+    const d = sicherung && (sicherung.daten || sicherung);
+    if(!d || !d.cat || !d.cat.s) return meldeWiederherstellung('Das ist keine Sicherung der Einkaufsliste.');
+    // Zur Sicherheit erst zeigen, was drinsteckt — nicht blind überschreiben.
+    document.getElementById('dlg-ttl').textContent = '⚠️ Wirklich zurückholen?';
+    document.getElementById('dlg-msg').innerHTML = `
+      <div style="font-size:14px;color:var(--txt);line-height:1.5;margin-bottom:14px">
+        Die aktuelle Liste wird durch den Inhalt der Sicherung <b>ersetzt</b>.
+      </div>
+      <div style="background:var(--surf2);border:1px solid var(--brd);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--sub);line-height:1.7">
+        Aus Sicherung vom <b style="color:var(--txt)">${esc(new Date(sicherung.erstellt||Date.now()).toLocaleString('de'))}</b><br>
+        von <b style="color:var(--txt)">${esc(sicherung.von||'?')}</b><br><br>
+        Supermarkt: <b style="color:var(--txt)">${(d.cat.s||[]).length}</b> ·
+        Drogerie: <b style="color:var(--txt)">${(d.cat.d||[]).length}</b> ·
+        Liste: <b style="color:var(--txt)">${(d.list||[]).length}</b>
+      </div>`;
+    window.__sicherung = d;
+    document.getElementById('dlg-btns').innerHTML = `
+      <button class="btn-c" onclick="openSicherungDialog()">Abbrechen</button>
+      <button class="btn-ok r" onclick="bestaetigeWiederherstellung()">Zurückholen</button>`;
+  };
+  leser.readAsText(f);
+}
+
+async function bestaetigeWiederherstellung(){
+  const d = window.__sicherung;
+  if(!d) return;
+  S = migrate(d) || d;
+  srt(S.cat.s); srt(S.cat.d);
+  renderAll();
+  protokolliere('Sicherung zurückgeholt', (S.cat?.s||[]).length+' Artikel');
+  const ok = await push();
+  meldeWiederherstellung(ok
+    ? 'Die Liste wurde wiederhergestellt und an alle verteilt.'
+    : 'Die Liste ist auf diesem Gerät wiederhergestellt, konnte aber noch nicht an die anderen verteilt werden. Sie wird automatisch nachgereicht.');
+}
+
+function meldeWiederherstellung(text){
+  openDlg('Zurückholen', text, `<button class="btn-c" style="width:100%" onclick="closeDlg()">OK</button>`);
 }
 
 // ── Protokoll ────────────────────────────────────────────────────────────────
@@ -1391,6 +1585,15 @@ function togglePlanGroup(key){
 // Zeilen, die mit "#" beginnen, werden als Begrüßung/Abschluss hervorgehoben
 // dargestellt (ohne Haken davor) — siehe openChangelog().
 const CHANGELOG = {
+  "4.3.1": [
+    "#Wichtig: Es ging etwas schief 🛟",
+    "Unsere Datenbank im Internet hatte sich schlafen gelegt. Deshalb kamen eure Einträge zuletzt nicht mehr bei den anderen an — obwohl die App „gespeichert\" anzeigte. Sie läuft wieder, und der Anzeigefehler ist behoben.",
+    "Wichtigster Fix: Hat dein Handy etwas, das noch nicht bei den anderen angekommen ist, wird es beim nächsten Öffnen nicht mehr überschrieben, sondern nachgereicht.",
+    "Neu: das 💾 oben. Damit sicherst du die komplette Liste als Datei auf dein Handy — gut für den Notfall.",
+    "Wenn etwas nicht gespeichert werden kann, erscheint jetzt ein roter Balken — er verschwindet erst, wenn es wirklich geklappt hat.",
+    "Nicht gespeicherte Eingaben werden nicht mehr überschrieben und automatisch nachgereicht, sobald es wieder geht.",
+    "#Alles ist wieder da — nichts ist verloren gegangen. Fragen? Einfach Papa Bescheid geben. 😊",
+  ],
   "4.3.0": [
     "#Nochmal die Update-Meldungen 🔧",
     "Die Meldungen kamen weiter, weil auf einem Handy noch eine alte Fassung der App lief. Deren Fehler ließ sich nicht aus der Ferne reparieren — jetzt wird sie aber einfach ignoriert und gibt von allein Ruhe.",
