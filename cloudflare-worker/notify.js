@@ -9,6 +9,25 @@
 
 const ALLOWED_ORIGIN = "https://ostelai.github.io";
 
+// Supabase pausiert Projekte im Gratis-Tarif nach einigen Tagen ohne Zugriff und
+// nimmt dabei die Adresse ganz vom Netz (DNS: "Non-existent domain"). Genau das ist
+// am 15.10.2026 passiert: Speichern schlug fehl, Push-Nachrichten kamen aber weiter
+// an — die App wirkte dadurch funktionsfähig. Der Cron-Trigger unten ruft die
+// Datenbank täglich einmal auf, damit sie gar nicht erst einschläft.
+// Schlüssel und Adresse stehen ohnehin öffentlich im Client (index.html), hier ist
+// also kein Secret nötig.
+const SB_URL = "https://bmqkwfzvgunymwonyhrn.supabase.co";
+const SB_KEY = "sb_publishable_am-CKp7YAzXiN2t10pQXCA_DCG-eLF7";
+
+async function weckeDatenbank() {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/einkaufsliste?id=eq.main&select=id`,
+    { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+  );
+  console.log("Weckruf Supabase:", r.status, r.ok ? "ok" : await r.text());
+  return r.ok;
+}
+
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -36,9 +55,20 @@ async function sendToOneSignal(env, body) {
 }
 
 export default {
+  // Läuft nach dem Zeitplan aus den Cron-Triggern (Worker → Settings → Triggers).
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(weckeDatenbank());
+  },
+
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders() });
+    }
+    // Zum Testen von Hand: .../?weckruf im Browser aufrufen. Zeigt sofort, ob die
+    // Datenbank erreichbar ist — ohne auf den nächsten Cron-Lauf zu warten.
+    if (request.method === "GET" && new URL(request.url).searchParams.has("weckruf")) {
+      const ok = await weckeDatenbank();
+      return json({ weckruf: ok ? "Datenbank ist wach" : "Datenbank antwortet nicht" }, ok ? 200 : 503);
     }
     if (request.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);
